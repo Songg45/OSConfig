@@ -5,6 +5,7 @@ param(
     [string]$InstallRoot,
     [string]$ConfigPath,
     [switch]$ForceDownload,
+    [switch]$SkipValidation,
     [switch]$Uninstall
 )
 
@@ -16,6 +17,47 @@ function Test-IsAdministrator {
     $principal = [Security.Principal.WindowsPrincipal]::new($identity)
 
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Invoke-SysmonValidation {
+    param(
+        [int]$TimeoutSeconds = 30
+    )
+
+    $logName = 'Microsoft-Windows-Sysmon/Operational'
+    $marker = "OSCONFIG_SYSMON_TEST_$([guid]::NewGuid().ToString('N'))"
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $commandProcessor = $env:ComSpec
+
+    if ([string]::IsNullOrWhiteSpace($commandProcessor)) {
+        $commandProcessor = Join-Path $env:SystemRoot 'System32\cmd.exe'
+    }
+
+    Write-Host "Generating Sysmon test command: $commandProcessor /c echo $marker"
+    Start-Process -FilePath $commandProcessor -ArgumentList @('/c', "echo $marker") -Wait -WindowStyle Hidden
+
+    do {
+        Start-Sleep -Seconds 1
+
+        $event = Get-WinEvent -FilterHashtable @{
+            LogName = $logName
+            Id = 1
+            StartTime = (Get-Date).AddMinutes(-5)
+        } -ErrorAction SilentlyContinue |
+            Where-Object { $_.Message -like "*$marker*" } |
+            Select-Object -First 1
+
+        if ($event) {
+            Write-Host 'Sysmon validation event found.'
+            Write-Host '----- Sysmon Event Viewer Message -----'
+            Write-Host $event.Message
+            Write-Host '----- End Sysmon Event Viewer Message -----'
+
+            return
+        }
+    } while ((Get-Date) -lt $deadline)
+
+    throw "Sysmon validation event was not found in '$logName' within $TimeoutSeconds seconds. Test marker: $marker"
 }
 
 if (-not (Test-IsAdministrator)) {
@@ -97,3 +139,7 @@ if ($service) {
 }
 
 Get-Service -Name 'Sysmon64'
+
+if (-not $SkipValidation) {
+    Invoke-SysmonValidation
+}

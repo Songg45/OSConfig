@@ -5,6 +5,7 @@ param(
     [ValidateSet('Sysmon')]
     [string[]]$Component = @('Sysmon'),
     [switch]$ForceDownload,
+    [switch]$SkipValidation,
     [switch]$ContinueOnError
 )
 
@@ -45,6 +46,10 @@ foreach ($componentName in $Component) {
 
     if ($ForceDownload) {
         $arguments += '-ForceDownload'
+    }
+
+    if ($SkipValidation) {
+        $arguments += '-SkipValidation'
     }
 
     try {

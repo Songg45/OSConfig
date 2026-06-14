@@ -58,11 +58,21 @@ Force fresh downloads for supported components:
 .\Install-OSConfig.ps1 -ForceDownload
 ```
 
+Skip post-install validation checks:
+
+```powershell
+.\Install-OSConfig.ps1 -SkipValidation
+```
+
 Install or update Sysmon directly:
 
 ```powershell
 .\scripts\Install-Sysmon.ps1
 ```
+
+The Sysmon installer runs a harmless test command by default and then prints the matching Sysmon Event ID 1 Event Viewer message. This verifies that Sysmon is installed, logging process creation events, and readable from PowerShell.
+
+The Sysmon installer is safe to run repeatedly. If Sysmon is already installed, the script updates the existing Sysmon configuration instead of installing a duplicate service. The validation step intentionally generates a fresh test event each time; use `-SkipValidation` if you want a quieter repeat run.
 
 Force a fresh Sysmon download:
 
