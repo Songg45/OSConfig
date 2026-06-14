@@ -31,6 +31,7 @@ scripts/
   Install-Metricbeat.ps1
   Install-Browsers.ps1
   Install-Thunderbird.ps1
+  Install-DocumentTools.ps1
 Install-OSConfig.ps1
 ```
 
@@ -183,6 +184,22 @@ Install or update Thunderbird directly from an elevated PowerShell session:
 ```
 
 The installer downloads Thunderbird from Mozilla's latest Windows MSI endpoint, installs it silently, and validates that Thunderbird is present. It is safe to run repeatedly; existing Thunderbird installs are skipped by default. Use `-ForceDownload` to refresh the installer cache and rerun installation.
+
+### Office And Documents
+
+The document tools installer adds common workstation document and archive tools:
+
+- LibreOffice
+- 7-Zip
+- Notepad++
+
+Install or update document tools directly from an elevated PowerShell session:
+
+```powershell
+.\scripts\Install-DocumentTools.ps1
+```
+
+The installer downloads LibreOffice from The Document Foundation, 7-Zip from the official 7-Zip GitHub release mirror, and Notepad++ from the official Notepad++ GitHub release. It installs each tool silently and validates that each tool is present. It is safe to run repeatedly; existing installs are skipped by default. Use `-ForceDownload` to refresh the installer cache and rerun installation.
 
 ## Usage
 

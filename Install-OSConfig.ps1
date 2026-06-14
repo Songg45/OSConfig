@@ -2,8 +2,8 @@
 
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [ValidateSet('Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird')]
-    [string[]]$Component = @('Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird'),
+    [ValidateSet('Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools')]
+    [string[]]$Component = @('Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools'),
     [switch]$ForceDownload,
     [switch]$SkipValidation,
     [switch]$ContinueOnError
@@ -38,6 +38,9 @@ $installSteps = [ordered]@{
     }
     Thunderbird = @{
         Path = Join-Path $PSScriptRoot 'scripts\Install-Thunderbird.ps1'
+    }
+    DocumentTools = @{
+        Path = Join-Path $PSScriptRoot 'scripts\Install-DocumentTools.ps1'
     }
 }
 
