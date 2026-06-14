@@ -501,6 +501,19 @@ function Set-LocalUserFullName {
     }
 }
 
+function Set-ExplorerBaseline {
+    $advancedPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+
+    if ($PSCmdlet.ShouldProcess($advancedPath, 'Set Explorer visibility baseline')) {
+        New-Item -Path $advancedPath -Force | Out-Null
+
+        # Hidden=2 keeps hidden files and folders hidden. HideFileExt=0 shows common file extensions.
+        Set-ItemProperty -Path $advancedPath -Name Hidden -Type DWord -Value 2
+        Set-ItemProperty -Path $advancedPath -Name ShowSuperHidden -Type DWord -Value 0
+        Set-ItemProperty -Path $advancedPath -Name HideFileExt -Type DWord -Value 0
+    }
+}
+
 $SeedRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($SeedRoot)
 
 $desktop = Join-Path $SeedRoot 'Desktop'
@@ -542,6 +555,7 @@ foreach ($folder in @(
 }
 
 Set-LocalUserFullName
+Set-ExplorerBaseline
 
 New-RtfFile -Path (Join-Path $work 'meeting-notes-q2.rtf') -Title 'Q2 Planning Notes' -Lines @(
     "Attendees: $FullName, Jordan, Sam",
