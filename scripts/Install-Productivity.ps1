@@ -10,6 +10,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$script:ChatGptInstallStatus = 'NotAttempted'
 
 function Test-IsAdministrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -67,7 +68,8 @@ function Install-ChatGpt {
     $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
 
     if (-not $winget) {
-        Write-Warning 'winget is not available. Skipping ChatGPT Microsoft Store install.'
+        $script:ChatGptInstallStatus = 'StoreUnavailable'
+        Write-Warning 'Windows Store is unavailable. winget is not available, so ChatGPT Microsoft Store install was skipped.'
         Write-Warning 'Manual URL: https://apps.microsoft.com/detail/9nt1r1c2hh7j'
         return
     }
@@ -76,6 +78,7 @@ function Install-ChatGpt {
         $listProcess = Start-Process -FilePath $winget.Source -ArgumentList @('list', '--id', '9NT1R1C2HH7J', '--source', 'msstore', '--accept-source-agreements') -Wait -PassThru -WindowStyle Hidden
 
         if ($listProcess.ExitCode -eq 0) {
+            $script:ChatGptInstallStatus = 'Installed'
             Write-Host 'ChatGPT is already installed; skipping. Use -ForceDownload to rerun the Store install.'
             return
         }
@@ -93,7 +96,10 @@ function Install-ChatGpt {
         $process = Start-Process -FilePath $winget.Source -ArgumentList $arguments -Wait -PassThru
 
         if ($process.ExitCode -ne 0) {
-            Write-Warning "ChatGPT Store install failed with exit code $($process.ExitCode). Install manually from https://apps.microsoft.com/detail/9nt1r1c2hh7j"
+            $script:ChatGptInstallStatus = 'InstallFailed'
+            Write-Warning "ChatGPT installation failed. Store install exited with code $($process.ExitCode). Install manually from https://apps.microsoft.com/detail/9nt1r1c2hh7j"
+        } else {
+            $script:ChatGptInstallStatus = 'InstallSucceeded'
         }
     }
 }
@@ -137,7 +143,18 @@ function Invoke-ProductivityValidation {
                 throw "$($app.Name) was not found after installation."
             }
 
-            Write-Warning "$($app.Name) was not found. It may require Microsoft Store or winget availability."
+            if ($app.Name -eq 'ChatGPT') {
+                if ($script:ChatGptInstallStatus -eq 'StoreUnavailable') {
+                    Write-Warning 'Windows Store is unavailable. ChatGPT was not installed because Microsoft Store/winget access is unavailable.'
+                } elseif ($script:ChatGptInstallStatus -eq 'InstallFailed') {
+                    Write-Warning 'ChatGPT installation failed. The Store install was attempted but did not complete successfully.'
+                } else {
+                    Write-Warning 'ChatGPT was not found. It may require Microsoft Store availability or a signed-in Store session.'
+                }
+            } else {
+                Write-Warning "$($app.Name) was not found. It may require Microsoft Store or winget availability."
+            }
+
             continue
         }
 
