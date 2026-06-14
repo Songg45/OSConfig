@@ -2,8 +2,8 @@
 
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [ValidateSet('Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools', 'EverydayApps', 'Runtimes', 'Communication', 'Productivity')]
-    [string[]]$Component = @('Runtimes', 'Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools', 'EverydayApps', 'Communication', 'Productivity'),
+    [ValidateSet('Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools', 'EverydayApps', 'Runtimes', 'Communication', 'Productivity', 'UserProfileSeed')]
+    [string[]]$Component = @('Runtimes', 'Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools', 'EverydayApps', 'Communication', 'Productivity', 'UserProfileSeed'),
     [switch]$ForceDownload,
     [switch]$SkipValidation,
     [switch]$ContinueOnError
@@ -53,6 +53,9 @@ $installSteps = [ordered]@{
     }
     Productivity = @{
         Path = Join-Path $PSScriptRoot 'scripts\Install-Productivity.ps1'
+    }
+    UserProfileSeed = @{
+        Path = Join-Path $PSScriptRoot 'scripts\Seed-UserProfile.ps1'
     }
 }
 

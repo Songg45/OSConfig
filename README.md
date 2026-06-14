@@ -25,6 +25,9 @@ configuration/
     metricbeat.yml
   winlogbeat/
     winlogbeat.yml
+assets/
+  seed-files/
+    cats/
 scripts/
   Install-Sysmon.ps1
   Install-Winlogbeat.ps1
@@ -36,6 +39,7 @@ scripts/
   Install-Runtimes.ps1
   Install-Communication.ps1
   Install-Productivity.ps1
+  Seed-UserProfile.ps1
 Install-OSConfig.ps1
 ```
 
@@ -273,6 +277,28 @@ Install or update productivity apps directly from an elevated PowerShell session
 ```
 
 VS Code is downloaded from Microsoft's stable Windows x64 endpoint. GitHub Desktop is downloaded from GitHub's latest Windows endpoint. ChatGPT's official Windows app is distributed through the Microsoft Store, so the installer attempts a best-effort Store install through `winget` when available and otherwise prints the manual Store URL.
+
+### User Profile Seeding
+
+The user profile seeding script adds benign files and workstation artifacts:
+
+- Desktop, Documents, Downloads, Pictures, and Screenshots folders
+- RTF notes and resume-style documents
+- CSV spreadsheet-style files
+- HTML saved-page style documents
+- ZIP archives
+- Generated JPG and PNG images
+- Seeded cat pictures in `Pictures\Cats`
+- Chrome and Edge bookmarks when browser profile folders exist
+- Local account full name update when running elevated
+
+Run the seeding step directly:
+
+```powershell
+.\scripts\Seed-UserProfile.ps1
+```
+
+The seeding step runs last in the orchestrator. It avoids overwriting existing seeded files by default; use `-Force` to recreate seeded artifacts. Cat pictures are copied from `assets\seed-files\cats` so VM setup does not need to download them. Browser history is not modified in this pass because Chromium and Firefox history databases require careful SQLite edits while browsers are closed.
 
 ## Usage
 
