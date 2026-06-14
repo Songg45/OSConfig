@@ -2,8 +2,8 @@
 
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [ValidateSet('Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools', 'EverydayApps')]
-    [string[]]$Component = @('Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools', 'EverydayApps'),
+    [ValidateSet('Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools', 'EverydayApps', 'Runtimes')]
+    [string[]]$Component = @('Runtimes', 'Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools', 'EverydayApps'),
     [switch]$ForceDownload,
     [switch]$SkipValidation,
     [switch]$ContinueOnError
@@ -24,6 +24,9 @@ if (-not (Test-IsAdministrator)) {
 }
 
 $installSteps = [ordered]@{
+    Runtimes = @{
+        Path = Join-Path $PSScriptRoot 'scripts\Install-Runtimes.ps1'
+    }
     Sysmon = @{
         Path = Join-Path $PSScriptRoot 'scripts\Install-Sysmon.ps1'
     }

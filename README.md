@@ -33,6 +33,7 @@ scripts/
   Install-Thunderbird.ps1
   Install-DocumentTools.ps1
   Install-EverydayApps.ps1
+  Install-Runtimes.ps1
 Install-OSConfig.ps1
 ```
 
@@ -217,6 +218,25 @@ Install or update everyday apps directly from an elevated PowerShell session:
 ```
 
 The installer downloads VLC from VideoLAN, Spotify from Spotify's Windows installer endpoint, and GIMP from the official GIMP Windows download path. It installs each app silently and validates that each app is present. It is safe to run repeatedly; existing installs are skipped by default. Use `-ForceDownload` to refresh the installer cache and rerun installation.
+
+### Runtimes And Dependencies
+
+The runtimes installer adds common runtime dependencies for detonation compatibility:
+
+- Microsoft Visual C++ Redistributable x64
+- Microsoft Visual C++ Redistributable x86
+- .NET Desktop Runtime x64
+- .NET Desktop Runtime x86
+- Eclipse Temurin Java 8 JRE
+- Python 3.13
+
+Install or update runtimes directly from an elevated PowerShell session:
+
+```powershell
+.\scripts\Install-Runtimes.ps1
+```
+
+The installer uses Microsoft's current Visual C++ redistributable links, Microsoft .NET Desktop Runtime `10.0.9`, Eclipse Adoptium's Temurin Java 8 JRE endpoint, and Python `3.13.14` from python.org. It is safe to run repeatedly; existing installs are skipped by default. Use `-ForceDownload` to refresh the installer cache and rerun installation.
 
 ## Usage
 
