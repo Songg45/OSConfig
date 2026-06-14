@@ -40,8 +40,11 @@ scripts/
   Install-Communication.ps1
   Install-Productivity.ps1
   Seed-UserProfile.ps1
+  Prepare-Clone.ps1
+  FirstBoot-RandomizeHost.ps1
 Test-OSConfig.ps1
 Install-OSConfig.ps1
+Invoke-OSConfig.ps1
 ```
 
 ## Current Configuration
@@ -64,6 +67,18 @@ Install or update the current OSConfig baseline from an elevated PowerShell sess
 
 ```powershell
 .\Install-OSConfig.ps1
+```
+
+Run the full wrapper, including installation and health check:
+
+```powershell
+.\Invoke-OSConfig.ps1
+```
+
+Run installation, health check, clone prep, OSConfig repo cleanup, and shutdown:
+
+```powershell
+.\Invoke-OSConfig.ps1 -PrepareClone -RemoveOSConfigRepo
 ```
 
 Force fresh downloads for supported components:
@@ -316,6 +331,39 @@ Emit JSON for automation:
 ```
 
 The health check does not install or change anything. It exits with a nonzero status when required checks fail. Optional items, such as ChatGPT or browser bookmarks, are reported as warnings.
+
+### Clone Preparation
+
+Prepare the VM for cloning after installation and seeding:
+
+```powershell
+.\scripts\Prepare-Clone.ps1
+```
+
+The clone prep script:
+
+- Sets the timezone to `Eastern Standard Time`
+- Stops and disables Winlogbeat and Metricbeat
+- Removes `C:\Program Files\Winlogbeat-Data`
+- Removes `C:\Program Files\Metricbeat-Data`
+- Cleans installer caches under `C:\ProgramData\OSConfig`
+- Optionally removes the OSConfig repository folder with `-RemoveOSConfigRepo`
+- Registers a one-time startup task
+- Shuts down the VM
+
+On the first boot of a clone, the startup task runs `FirstBoot-RandomizeHost.ps1`, randomizes the hostname, enables Winlogbeat and Metricbeat, deletes the startup task, and restarts the VM. After that second boot, the clone should have fresh Beat state and a unique hostname.
+
+Test clone preparation without shutting down:
+
+```powershell
+.\scripts\Prepare-Clone.ps1 -SkipShutdown
+```
+
+Remove the OSConfig repository during clone prep:
+
+```powershell
+.\scripts\Prepare-Clone.ps1 -RemoveOSConfigRepo
+```
 
 ## Usage
 
