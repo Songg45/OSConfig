@@ -27,6 +27,7 @@ configuration/
     winlogbeat.yml
 scripts/
   Install-Sysmon.ps1
+  Install-Winlogbeat.ps1
 Install-OSConfig.ps1
 ```
 
@@ -123,6 +124,20 @@ It also sets:
 ```yaml
 pipeline_source: winlogbeat
 fields_under_root: true
+```
+
+Install or update Winlogbeat directly from an elevated PowerShell session:
+
+```powershell
+.\scripts\Install-Winlogbeat.ps1
+```
+
+The Winlogbeat installer defaults to Winlogbeat `8.19.16`, downloads the Windows x86_64 zip from Elastic, installs the service, copies `configuration\winlogbeat\winlogbeat.yml` into `C:\Program Files\Winlogbeat`, starts the service, tests the configuration, and verifies the configured Windows event logs are readable. It is safe to run repeatedly; existing installs have their configuration refreshed and service restarted.
+
+Install a different 8.x version:
+
+```powershell
+.\scripts\Install-Winlogbeat.ps1 -Version 8.19.5
 ```
 
 ## Usage

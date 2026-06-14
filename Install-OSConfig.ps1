@@ -2,8 +2,8 @@
 
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [ValidateSet('Sysmon')]
-    [string[]]$Component = @('Sysmon'),
+    [ValidateSet('Sysmon', 'Winlogbeat')]
+    [string[]]$Component = @('Sysmon', 'Winlogbeat'),
     [switch]$ForceDownload,
     [switch]$SkipValidation,
     [switch]$ContinueOnError
@@ -26,6 +26,9 @@ if (-not (Test-IsAdministrator)) {
 $installSteps = [ordered]@{
     Sysmon = @{
         Path = Join-Path $PSScriptRoot 'scripts\Install-Sysmon.ps1'
+    }
+    Winlogbeat = @{
+        Path = Join-Path $PSScriptRoot 'scripts\Install-Winlogbeat.ps1'
     }
 }
 
