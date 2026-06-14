@@ -34,6 +34,7 @@ scripts/
   Install-DocumentTools.ps1
   Install-EverydayApps.ps1
   Install-Runtimes.ps1
+  Install-Communication.ps1
 Install-OSConfig.ps1
 ```
 
@@ -237,6 +238,22 @@ Install or update runtimes directly from an elevated PowerShell session:
 ```
 
 The installer uses Microsoft's current Visual C++ redistributable links, Microsoft .NET Desktop Runtime `10.0.9`, Eclipse Adoptium's Temurin Java 8 JRE endpoint, and Python `3.13.14` from python.org. It is safe to run repeatedly; existing installs are skipped by default. Use `-ForceDownload` to refresh the installer cache and rerun installation.
+
+### Communication
+
+The communication installer adds common desktop communication apps:
+
+- Discord
+- Zoom
+- Slack
+
+Install or update communication apps directly from an elevated PowerShell session:
+
+```powershell
+.\scripts\Install-Communication.ps1
+```
+
+The installer downloads Discord from Discord's Windows download endpoint, Zoom from Zoom's latest x64 MSI endpoint, and Slack from Slack's Windows x64 download endpoint. Discord and Slack use per-user style installers, while Zoom installs through MSI. Existing installs are skipped by default. Use `-ForceDownload` to refresh the installer cache and rerun installation.
 
 ## Usage
 
