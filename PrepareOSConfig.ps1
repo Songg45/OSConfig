@@ -25,17 +25,6 @@ New-Item -Path $TempRoot -ItemType Directory -Force | Out-Null
 
 $gitInstallerPath = Join-Path $TempRoot 'Git-2.54.0-64-bit.exe'
 $repoPath = Join-Path $TempRoot 'OSConfig'
-
-Write-Host "Downloading Git installer to $gitInstallerPath"
-Invoke-WebRequest -Uri $GitInstallerUrl -OutFile $gitInstallerPath
-
-Write-Host 'Installing Git for Windows.'
-$gitInstall = Start-Process -FilePath $gitInstallerPath -ArgumentList @('/VERYSILENT', '/NORESTART') -Wait -PassThru
-
-if ($gitInstall.ExitCode -ne 0) {
-    throw "Git installer failed with exit code $($gitInstall.ExitCode)."
-}
-
 $gitExe = 'C:\Program Files\Git\cmd\git.exe'
 
 if (-not (Test-Path $gitExe)) {
@@ -44,6 +33,30 @@ if (-not (Test-Path $gitExe)) {
     if ($gitCommand) {
         $gitExe = $gitCommand.Source
     }
+}
+
+if (-not (Test-Path $gitExe)) {
+    Write-Host 'Git was not found. Installing Git for Windows.'
+    Write-Host "Downloading Git installer to $gitInstallerPath"
+    Invoke-WebRequest -Uri $GitInstallerUrl -OutFile $gitInstallerPath
+
+    $gitInstall = Start-Process -FilePath $gitInstallerPath -ArgumentList @('/VERYSILENT', '/NORESTART') -Wait -PassThru
+
+    if ($gitInstall.ExitCode -ne 0) {
+        throw "Git installer failed with exit code $($gitInstall.ExitCode)."
+    }
+
+    $gitExe = 'C:\Program Files\Git\cmd\git.exe'
+
+    if (-not (Test-Path $gitExe)) {
+        $gitCommand = Get-Command git.exe -ErrorAction SilentlyContinue
+
+        if ($gitCommand) {
+            $gitExe = $gitCommand.Source
+        }
+    }
+} else {
+    Write-Host "Git found at $gitExe"
 }
 
 if (-not (Test-Path $gitExe)) {
