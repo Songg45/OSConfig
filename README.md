@@ -32,6 +32,7 @@ scripts/
   Install-Browsers.ps1
   Install-Thunderbird.ps1
   Install-DocumentTools.ps1
+  Install-EverydayApps.ps1
 Install-OSConfig.ps1
 ```
 
@@ -200,6 +201,22 @@ Install or update document tools directly from an elevated PowerShell session:
 ```
 
 The installer downloads LibreOffice from The Document Foundation, 7-Zip from the official 7-Zip GitHub release mirror, and Notepad++ from the official Notepad++ GitHub release. It installs each tool silently and validates that each tool is present. It is safe to run repeatedly; existing installs are skipped by default. Use `-ForceDownload` to refresh the installer cache and rerun installation.
+
+### Media And Everyday Apps
+
+The everyday apps installer adds common media and personal-use applications:
+
+- VLC Media Player
+- Spotify
+- GIMP
+
+Install or update everyday apps directly from an elevated PowerShell session:
+
+```powershell
+.\scripts\Install-EverydayApps.ps1
+```
+
+The installer downloads VLC from VideoLAN, Spotify from Spotify's Windows installer endpoint, and GIMP from the official GIMP Windows download path. It installs each app silently and validates that each app is present. It is safe to run repeatedly; existing installs are skipped by default. Use `-ForceDownload` to refresh the installer cache and rerun installation.
 
 ## Usage
 

@@ -2,8 +2,8 @@
 
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [ValidateSet('Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools')]
-    [string[]]$Component = @('Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools'),
+    [ValidateSet('Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools', 'EverydayApps')]
+    [string[]]$Component = @('Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools', 'EverydayApps'),
     [switch]$ForceDownload,
     [switch]$SkipValidation,
     [switch]$ContinueOnError
@@ -41,6 +41,9 @@ $installSteps = [ordered]@{
     }
     DocumentTools = @{
         Path = Join-Path $PSScriptRoot 'scripts\Install-DocumentTools.ps1'
+    }
+    EverydayApps = @{
+        Path = Join-Path $PSScriptRoot 'scripts\Install-EverydayApps.ps1'
     }
 }
 
