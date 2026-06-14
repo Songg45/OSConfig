@@ -1,0 +1,15 @@
+winlogbeat.event_logs:
+  - name: Application
+  - name: System
+  - name: Security
+  - name: Microsoft-Windows-Sysmon/Operational
+  - name: Microsoft-Windows-PowerShell/Operational
+  - name: Windows PowerShell
+
+output.logstash:
+  hosts: ["172.20.200.200:30200"]
+
+fields:
+  pipeline_source: winlogbeat
+
+fields_under_root: true
