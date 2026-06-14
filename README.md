@@ -19,13 +19,49 @@ The goal is to build repeatable PowerShell-based setup steps for installing comm
 
 ```text
 configuration/
+  sysmon/
+    sysmonconfig-export.xml
   metricbeat/
     metricbeat.yml
   winlogbeat/
     winlogbeat.yml
+scripts/
+  Install-Sysmon.ps1
 ```
 
 ## Current Configuration
+
+### Sysmon
+
+The Sysmon configuration is stored at:
+
+```text
+configuration\sysmon\sysmonconfig-export.xml
+```
+
+This file is captured from the SwiftOnSecurity Sysmon configuration project:
+
+```text
+https://github.com/SwiftOnSecurity/sysmon-config/blob/master/sysmonconfig-export.xml
+```
+
+Install or update Sysmon from an elevated PowerShell session:
+
+```powershell
+.\scripts\Install-Sysmon.ps1
+```
+
+Force a fresh Sysmon download:
+
+```powershell
+.\scripts\Install-Sysmon.ps1 -ForceDownload
+```
+
+Uninstall Sysmon:
+
+```powershell
+.\scripts\Install-Sysmon.ps1 -Uninstall
+```
 
 ### Metricbeat
 
