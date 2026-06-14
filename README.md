@@ -28,6 +28,7 @@ configuration/
 scripts/
   Install-Sysmon.ps1
   Install-Winlogbeat.ps1
+  Install-Metricbeat.ps1
 Install-OSConfig.ps1
 ```
 
@@ -100,6 +101,20 @@ It also sets:
 ```yaml
 pipeline_source: metricbeat
 fields_under_root: true
+```
+
+Install or update Metricbeat directly from an elevated PowerShell session:
+
+```powershell
+.\scripts\Install-Metricbeat.ps1
+```
+
+The Metricbeat installer defaults to Metricbeat `8.19.16`, downloads the Windows x86_64 zip from Elastic, installs the service, copies `configuration\metricbeat\metricbeat.yml` into `C:\Program Files\Metricbeat`, enables the `system` and `windows` modules when present, starts the service, and tests the configuration. It is safe to run repeatedly; existing installs have their configuration refreshed and service restarted.
+
+Install a different 8.x version:
+
+```powershell
+.\scripts\Install-Metricbeat.ps1 -Version 8.19.5
 ```
 
 ### Winlogbeat

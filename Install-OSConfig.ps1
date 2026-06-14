@@ -2,8 +2,8 @@
 
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [ValidateSet('Sysmon', 'Winlogbeat')]
-    [string[]]$Component = @('Sysmon', 'Winlogbeat'),
+    [ValidateSet('Sysmon', 'Winlogbeat', 'Metricbeat')]
+    [string[]]$Component = @('Sysmon', 'Winlogbeat', 'Metricbeat'),
     [switch]$ForceDownload,
     [switch]$SkipValidation,
     [switch]$ContinueOnError
@@ -29,6 +29,9 @@ $installSteps = [ordered]@{
     }
     Winlogbeat = @{
         Path = Join-Path $PSScriptRoot 'scripts\Install-Winlogbeat.ps1'
+    }
+    Metricbeat = @{
+        Path = Join-Path $PSScriptRoot 'scripts\Install-Metricbeat.ps1'
     }
 }
 
