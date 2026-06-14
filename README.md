@@ -29,6 +29,7 @@ scripts/
   Install-Sysmon.ps1
   Install-Winlogbeat.ps1
   Install-Metricbeat.ps1
+  Install-Browsers.ps1
 Install-OSConfig.ps1
 ```
 
@@ -154,6 +155,21 @@ Install a different 8.x version:
 ```powershell
 .\scripts\Install-Winlogbeat.ps1 -Version 8.19.5
 ```
+
+### Browsers
+
+The browser installer adds common workstation browsers for detonation realism:
+
+- Google Chrome
+- Mozilla Firefox
+
+Install or update browsers directly from an elevated PowerShell session:
+
+```powershell
+.\scripts\Install-Browsers.ps1
+```
+
+The installer downloads Chrome from Google's standalone enterprise MSI endpoint and Firefox from Mozilla's latest Windows MSI endpoint, installs both silently, and validates that each browser is present. It is safe to run repeatedly; existing browser installs are refreshed with the latest downloaded MSI.
 
 ## Usage
 
