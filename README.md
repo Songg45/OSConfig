@@ -35,6 +35,7 @@ scripts/
   Install-EverydayApps.ps1
   Install-Runtimes.ps1
   Install-Communication.ps1
+  Install-Productivity.ps1
 Install-OSConfig.ps1
 ```
 
@@ -204,6 +205,8 @@ Install or update document tools directly from an elevated PowerShell session:
 
 The installer downloads LibreOffice from The Document Foundation, 7-Zip from the official 7-Zip GitHub release mirror, and Notepad++ from the official Notepad++ GitHub release. It installs each tool silently and validates that each tool is present. It is safe to run repeatedly; existing installs are skipped by default. Use `-ForceDownload` to refresh the installer cache and rerun installation.
 
+7-Zip covers the archive and file-handling baseline.
+
 ### Media And Everyday Apps
 
 The everyday apps installer adds common media and personal-use applications:
@@ -254,6 +257,22 @@ Install or update communication apps directly from an elevated PowerShell sessio
 ```
 
 The installer downloads Discord from Discord's Windows download endpoint, Zoom from Zoom's latest x64 MSI endpoint, and Slack from Slack's Windows x64 download endpoint. Discord and Slack use per-user style installers, while Zoom installs through MSI. Existing installs are skipped by default. Use `-ForceDownload` to refresh the installer cache and rerun installation.
+
+### Productivity
+
+The productivity installer adds common workstation productivity tools:
+
+- Visual Studio Code
+- ChatGPT
+- GitHub Desktop
+
+Install or update productivity apps directly from an elevated PowerShell session:
+
+```powershell
+.\scripts\Install-Productivity.ps1
+```
+
+VS Code is downloaded from Microsoft's stable Windows x64 endpoint. GitHub Desktop is downloaded from GitHub's latest Windows endpoint. ChatGPT's official Windows app is distributed through the Microsoft Store, so the installer attempts a best-effort Store install through `winget` when available and otherwise prints the manual Store URL.
 
 ## Usage
 
