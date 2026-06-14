@@ -161,7 +161,7 @@ $apps = @(
         DisplayNamePattern = 'GIMP*'
         Url = 'https://download.gimp.org/gimp/v3.0/windows/gimp-3.0.4-setup.exe'
         Path = Join-Path $DownloadRoot 'gimp-3.0.4-setup.exe'
-        Arguments = @('/VERYSILENT', '/NORESTART')
+        Arguments = @('/VERYSILENT', '/ALLUSERS', '/NORESTART')
     }
 )
 
