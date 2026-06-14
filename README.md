@@ -30,6 +30,7 @@ scripts/
   Install-Winlogbeat.ps1
   Install-Metricbeat.ps1
   Install-Browsers.ps1
+  Install-Thunderbird.ps1
 Install-OSConfig.ps1
 ```
 
@@ -170,6 +171,18 @@ Install or update browsers directly from an elevated PowerShell session:
 ```
 
 The installer downloads Chrome from Google's standalone enterprise MSI endpoint and Firefox from Mozilla's latest Windows MSI endpoint, installs both silently, and validates that each browser is present. It is safe to run repeatedly; existing browser installs are skipped by default. Use `-ForceDownload` to refresh the installer cache and rerun installation.
+
+### Email
+
+The email installer adds Mozilla Thunderbird as a realistic desktop email client for the detonation VM.
+
+Install or update Thunderbird directly from an elevated PowerShell session:
+
+```powershell
+.\scripts\Install-Thunderbird.ps1
+```
+
+The installer downloads Thunderbird from Mozilla's latest Windows MSI endpoint, installs it silently, and validates that Thunderbird is present. It is safe to run repeatedly; existing Thunderbird installs are skipped by default. Use `-ForceDownload` to refresh the installer cache and rerun installation.
 
 ## Usage
 
