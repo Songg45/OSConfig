@@ -2,8 +2,8 @@
 
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [string]$InstallRoot = "$env:ProgramData\OSConfig\Sysmon",
-    [string]$ConfigPath = (Join-Path $PSScriptRoot '..\configuration\sysmon\sysmonconfig-export.xml'),
+    [string]$InstallRoot,
+    [string]$ConfigPath,
     [switch]$ForceDownload,
     [switch]$Uninstall
 )
@@ -20,6 +20,23 @@ function Test-IsAdministrator {
 if (-not (Test-IsAdministrator)) {
     throw 'Install-Sysmon.ps1 must be run from an elevated PowerShell session.'
 }
+
+if ([string]::IsNullOrWhiteSpace($InstallRoot)) {
+    $programData = [Environment]::GetFolderPath('CommonApplicationData')
+
+    if ([string]::IsNullOrWhiteSpace($programData)) {
+        $programData = 'C:\ProgramData'
+    }
+
+    $InstallRoot = Join-Path $programData 'OSConfig\Sysmon'
+}
+
+if ([string]::IsNullOrWhiteSpace($ConfigPath)) {
+    $ConfigPath = Join-Path $PSScriptRoot '..\configuration\sysmon\sysmonconfig-export.xml'
+}
+
+$InstallRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($InstallRoot)
+$ConfigPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($ConfigPath)
 
 $downloadUrl = 'https://download.sysinternals.com/files/Sysmon.zip'
 $zipPath = Join-Path $InstallRoot 'Sysmon.zip'
@@ -42,12 +59,19 @@ if (-not (Test-Path $ConfigPath)) {
     throw "Sysmon configuration was not found at $ConfigPath."
 }
 
+Write-Host "Sysmon install root: $InstallRoot"
+Write-Host "Sysmon config path: $ConfigPath"
+
 New-Item -Path $InstallRoot -ItemType Directory -Force | Out-Null
 New-Item -Path $extractPath -ItemType Directory -Force | Out-Null
 
 if ($ForceDownload -or -not (Test-Path $sysmonExe)) {
     if ($PSCmdlet.ShouldProcess($downloadUrl, "Download to $zipPath")) {
         Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath
+    }
+
+    if (-not (Test-Path $zipPath)) {
+        throw "Sysmon download did not create the expected archive at $zipPath."
     }
 
     if ($PSCmdlet.ShouldProcess($zipPath, "Expand to $extractPath")) {

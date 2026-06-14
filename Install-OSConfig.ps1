@@ -24,13 +24,6 @@ if (-not (Test-IsAdministrator)) {
 $installSteps = [ordered]@{
     Sysmon = @{
         Path = Join-Path $PSScriptRoot 'scripts\Install-Sysmon.ps1'
-        Arguments = {
-            if ($ForceDownload) {
-                return @('-ForceDownload')
-            }
-
-            return @()
-        }
     }
 }
 
@@ -47,7 +40,11 @@ foreach ($componentName in $Component) {
         throw "Install script was not found for component '$componentName' at $($step.Path)."
     }
 
-    $arguments = & $step.Arguments
+    $arguments = @()
+
+    if ($ForceDownload) {
+        $arguments += '-ForceDownload'
+    }
 
     try {
         if ($PSCmdlet.ShouldProcess($componentName, "Run $($step.Path) $($arguments -join ' ')")) {
