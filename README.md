@@ -27,6 +27,7 @@ configuration/
     winlogbeat.yml
 scripts/
   Install-Sysmon.ps1
+Install-OSConfig.ps1
 ```
 
 ## Current Configuration
@@ -45,7 +46,19 @@ This file is captured from the SwiftOnSecurity Sysmon configuration project:
 https://github.com/SwiftOnSecurity/sysmon-config/blob/master/sysmonconfig-export.xml
 ```
 
-Install or update Sysmon from an elevated PowerShell session:
+Install or update the current OSConfig baseline from an elevated PowerShell session:
+
+```powershell
+.\Install-OSConfig.ps1
+```
+
+Force fresh downloads for supported components:
+
+```powershell
+.\Install-OSConfig.ps1 -ForceDownload
+```
+
+Install or update Sysmon directly:
 
 ```powershell
 .\scripts\Install-Sysmon.ps1
