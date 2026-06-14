@@ -63,6 +63,11 @@ if (-not (Test-Path $gitExe)) {
     throw 'Git was installed, but git.exe was not found.'
 }
 
+if ((Test-Path $repoPath) -and -not (Test-Path (Join-Path $repoPath '.git'))) {
+    Write-Warning "$repoPath exists but is not a Git repository. Recreating it."
+    Remove-Item -LiteralPath $repoPath -Recurse -Force
+}
+
 if (Test-Path $repoPath) {
     Write-Host "$repoPath already exists. Pulling latest changes."
     & $gitExe -C $repoPath pull --ff-only
