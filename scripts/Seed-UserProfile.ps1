@@ -513,9 +513,30 @@ $work = Join-Path $documents 'Work'
 $personal = Join-Path $documents 'Personal'
 $software = Join-Path $downloads 'Software'
 
-foreach ($folder in @($desktop, $documents, $downloads, $pictures, $screenshots, $cats, $work, $personal, $software)) {
+foreach ($folder in @(
+    $desktop,
+    $documents,
+    $downloads,
+    $pictures,
+    $screenshots,
+    $cats,
+    $work,
+    $personal,
+    $software
+)) {
     if ($PSCmdlet.ShouldProcess($folder, 'Create user seed folder')) {
         New-Item -Path $folder -ItemType Directory -Force | Out-Null
+    }
+}
+
+foreach ($folder in @(
+    $screenshots,
+    $cats,
+    $work,
+    $personal,
+    $software
+)) {
+    if ($PSCmdlet.ShouldProcess($folder, 'Set folder timestamp')) {
         Set-SeedTimestamp -Path $folder
     }
 }
