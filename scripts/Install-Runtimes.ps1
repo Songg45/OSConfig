@@ -73,6 +73,12 @@ function Install-MsiPackage {
         throw "$Name installer was not found at $InstallerPath."
     }
 
+    $fileHeader = Get-Content -Path $InstallerPath -Encoding Byte -TotalCount 8
+
+    if ($fileHeader[0] -ne 0xD0 -or $fileHeader[1] -ne 0xCF -or $fileHeader[2] -ne 0x11 -or $fileHeader[3] -ne 0xE0) {
+        throw "$Name installer at $InstallerPath is not a valid MSI file. Use -ForceDownload after pulling the latest script."
+    }
+
     if ($PSCmdlet.ShouldProcess($Name, "Install MSI from $InstallerPath")) {
         $process = Start-Process -FilePath 'msiexec.exe' -ArgumentList @('/i', $InstallerPath, '/qn', '/norestart') -Wait -PassThru
 
@@ -188,7 +194,7 @@ $packages = @(
     @{
         Name = 'Eclipse Temurin Java 8 JRE'
         DisplayNamePattern = 'Eclipse Temurin JRE with Hotspot 8*'
-        Url = 'https://api.adoptium.net/v3/binary/latest/8/ga/windows/x64/jre/hotspot/normal/eclipse'
+        Url = 'https://api.adoptium.net/v3/installer/latest/8/ga/windows/x64/jre/hotspot/normal/eclipse'
         Path = Join-Path $DownloadRoot 'temurin-8-jre-x64.msi'
         Type = 'Msi'
     },
