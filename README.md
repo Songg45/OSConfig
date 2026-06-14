@@ -347,11 +347,11 @@ The clone prep script:
 - Removes `C:\Program Files\Winlogbeat-Data`
 - Removes `C:\Program Files\Metricbeat-Data`
 - Cleans installer caches under `C:\ProgramData\OSConfig`
-- Optionally removes the OSConfig repository folder with `-RemoveOSConfigRepo`
+- Optionally schedules removal of the OSConfig repository folder with `-RemoveOSConfigRepo`
 - Registers a one-time startup task
 - Shuts down the VM
 
-On the first boot of a clone, the startup task runs `FirstBoot-RandomizeHost.ps1`, randomizes the hostname, enables Winlogbeat and Metricbeat, deletes the startup task, and restarts the VM. After that second boot, the clone should have fresh Beat state and a unique hostname.
+On the first boot of a clone, the startup task runs `FirstBoot-RandomizeHost.ps1`, randomizes the hostname, enables Winlogbeat and Metricbeat, deletes the startup task, optionally removes the OSConfig repository folder, and restarts the VM. After that second boot, the clone should have fresh Beat state and a unique hostname.
 
 Test clone preparation without shutting down:
 

@@ -180,6 +180,10 @@ if (-not (Get-Service -Name 'metricbeat' -ErrorAction SilentlyContinue)) {
 
 $service = Get-Service -Name 'metricbeat' -ErrorAction Stop
 
+if ($PSCmdlet.ShouldProcess('metricbeat', 'Set service startup type to Automatic')) {
+    Set-Service -Name 'metricbeat' -StartupType Automatic
+}
+
 if ($service.Status -eq 'Running') {
     if ($PSCmdlet.ShouldProcess('metricbeat', 'Restart service')) {
         Restart-Service -Name 'metricbeat' -Force

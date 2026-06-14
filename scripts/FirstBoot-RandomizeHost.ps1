@@ -3,7 +3,8 @@
 [CmdletBinding()]
 param(
     [string]$TaskName = 'OSConfig-FirstBootRandomizeHost',
-    [string]$Prefix = 'DET'
+    [string]$Prefix = 'DET',
+    [string]$OSConfigRepoPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -39,6 +40,17 @@ foreach ($serviceName in @('winlogbeat', 'metricbeat')) {
 
 Write-Host "Deleting scheduled task $TaskName"
 Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue
+
+if (-not [string]::IsNullOrWhiteSpace($OSConfigRepoPath)) {
+    $resolvedRepo = Resolve-Path -Path $OSConfigRepoPath -ErrorAction SilentlyContinue
+
+    if ($resolvedRepo) {
+        Write-Host "Removing OSConfig repository folder: $($resolvedRepo.Path)"
+        Remove-Item -LiteralPath $resolvedRepo.Path -Recurse -Force -ErrorAction SilentlyContinue
+    } else {
+        Write-Warning "OSConfig repository path was not found: $OSConfigRepoPath"
+    }
+}
 
 Write-Host 'Restarting after first-boot hostname randomization.'
 Restart-Computer -Force

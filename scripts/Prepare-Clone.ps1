@@ -72,6 +72,11 @@ function Register-FirstBootTask {
     }
 
     $argument = "-NoProfile -ExecutionPolicy Bypass -File `"$FirstBootScriptPath`" -TaskName `"$TaskName`" -Prefix `"$HostnamePrefix`""
+
+    if ($RemoveOSConfigRepo) {
+        $argument = "$argument -OSConfigRepoPath `"$OSConfigRepoPath`""
+    }
+
     $action = New-ScheduledTaskAction -Execute 'PowerShell.exe' -Argument $argument
     $trigger = New-ScheduledTaskTrigger -AtStartup
     $principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -RunLevel Highest
@@ -120,15 +125,7 @@ foreach ($path in @(
 Register-FirstBootTask
 
 if ($RemoveOSConfigRepo) {
-    $resolvedRepo = Resolve-Path -Path $OSConfigRepoPath -ErrorAction SilentlyContinue
-
-    if ($resolvedRepo) {
-        if ($PSCmdlet.ShouldProcess($resolvedRepo.Path, 'Remove OSConfig repository folder')) {
-            Remove-Item -LiteralPath $resolvedRepo.Path -Recurse -Force
-        }
-    } else {
-        Write-Warning "OSConfig repository path was not found: $OSConfigRepoPath"
-    }
+    Write-Host "OSConfig repository folder will be removed on first clone boot: $OSConfigRepoPath"
 }
 
 Write-Host 'Clone preparation complete.'

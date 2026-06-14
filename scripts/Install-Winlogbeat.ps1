@@ -185,6 +185,10 @@ if (-not (Get-Service -Name 'winlogbeat' -ErrorAction SilentlyContinue)) {
 
 $service = Get-Service -Name 'winlogbeat' -ErrorAction Stop
 
+if ($PSCmdlet.ShouldProcess('winlogbeat', 'Set service startup type to Automatic')) {
+    Set-Service -Name 'winlogbeat' -StartupType Automatic
+}
+
 if ($service.Status -eq 'Running') {
     if ($PSCmdlet.ShouldProcess('winlogbeat', 'Restart service')) {
         Restart-Service -Name 'winlogbeat' -Force
