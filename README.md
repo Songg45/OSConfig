@@ -40,6 +40,7 @@ scripts/
   Install-Communication.ps1
   Install-Productivity.ps1
   Seed-UserProfile.ps1
+Test-OSConfig.ps1
 Install-OSConfig.ps1
 ```
 
@@ -299,6 +300,22 @@ Run the seeding step directly:
 ```
 
 The seeding step runs last in the orchestrator. It avoids overwriting existing seeded files by default; use `-Force` to recreate seeded artifacts. Cat pictures are copied from `assets\seed-files\cats` so VM setup does not need to download them. Browser history is not modified in this pass because Chromium and Firefox history databases require careful SQLite edits while browsers are closed.
+
+### Health Check
+
+Run the health check after installation to report services, applications, configuration files, and seeded profile artifacts:
+
+```powershell
+.\Test-OSConfig.ps1
+```
+
+Emit JSON for automation:
+
+```powershell
+.\Test-OSConfig.ps1 -AsJson
+```
+
+The health check does not install or change anything. It exits with a nonzero status when required checks fail. Optional items, such as ChatGPT or browser bookmarks, are reported as warnings.
 
 ## Usage
 
