@@ -178,6 +178,13 @@ Write-Host "Browser installer download root: $DownloadRoot"
 New-Item -Path $DownloadRoot -ItemType Directory -Force | Out-Null
 
 foreach ($installer in $installers) {
+    $isInstalled = Test-InstalledProgram -DisplayNamePattern $installer.DisplayNamePattern
+
+    if ($isInstalled -and -not $ForceDownload) {
+        Write-Host "$($installer.Name) is already installed; skipping. Use -ForceDownload to refresh the installer and rerun installation."
+        continue
+    }
+
     if ($ForceDownload -or -not (Test-Path $installer.Path)) {
         if ($PSCmdlet.ShouldProcess($installer.Url, "Download to $($installer.Path)")) {
             Invoke-WebRequest -Uri $installer.Url -OutFile $installer.Path
@@ -188,7 +195,7 @@ foreach ($installer in $installers) {
         throw "$($installer.Name) download did not create the expected installer at $($installer.Path)."
     }
 
-    if (Test-InstalledProgram -DisplayNamePattern $installer.DisplayNamePattern) {
+    if ($isInstalled) {
         Write-Host "$($installer.Name) is already installed; refreshing install with latest downloaded MSI."
     }
 

@@ -169,7 +169,7 @@ Install or update browsers directly from an elevated PowerShell session:
 .\scripts\Install-Browsers.ps1
 ```
 
-The installer downloads Chrome from Google's standalone enterprise MSI endpoint and Firefox from Mozilla's latest Windows MSI endpoint, installs both silently, and validates that each browser is present. It is safe to run repeatedly; existing browser installs are refreshed with the latest downloaded MSI.
+The installer downloads Chrome from Google's standalone enterprise MSI endpoint and Firefox from Mozilla's latest Windows MSI endpoint, installs both silently, and validates that each browser is present. It is safe to run repeatedly; existing browser installs are skipped by default. Use `-ForceDownload` to refresh the installer cache and rerun installation.
 
 ## Usage
 
