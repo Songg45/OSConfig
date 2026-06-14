@@ -75,7 +75,7 @@ Run the full wrapper, including installation and health check:
 .\Invoke-OSConfig.ps1
 ```
 
-Run installation, health check, clone prep, OSConfig repo cleanup, and shutdown:
+Run installation, health check, clone prep, OSConfig repo cleanup, reboot, and first-boot shutdown:
 
 ```powershell
 .\Invoke-OSConfig.ps1 -PrepareClone -RemoveOSConfigRepo
@@ -349,14 +349,14 @@ The clone prep script:
 - Cleans installer caches under `C:\ProgramData\OSConfig`
 - Optionally schedules removal of the OSConfig repository folder with `-RemoveOSConfigRepo`
 - Registers a one-time startup task
-- Shuts down the VM
+- Reboots the VM to run the one-time startup task
 
-On the first boot of a clone, the startup task runs `FirstBoot-RandomizeHost.ps1`, randomizes the hostname, enables Winlogbeat and Metricbeat, deletes the startup task, optionally removes the OSConfig repository folder, and restarts the VM. After that second boot, the clone should have fresh Beat state and a unique hostname.
+On the next boot, the startup task runs `FirstBoot-RandomizeHost.ps1`, randomizes the hostname, enables Winlogbeat and Metricbeat, deletes the startup task, optionally removes the OSConfig repository folder, and shuts down the VM. On the following power-on, the clone should have fresh Beat state and a unique hostname.
 
-Test clone preparation without shutting down:
+Test clone preparation without rebooting:
 
 ```powershell
-.\scripts\Prepare-Clone.ps1 -SkipShutdown
+.\scripts\Prepare-Clone.ps1 -SkipReboot
 ```
 
 Remove the OSConfig repository during clone prep:

@@ -8,7 +8,7 @@ param(
     [string]$FirstBootScriptPath = 'C:\ProgramData\OSConfig\FirstBoot-RandomizeHost.ps1',
     [string]$OSConfigRepoPath = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path,
     [switch]$RemoveOSConfigRepo,
-    [switch]$SkipShutdown
+    [switch]$SkipReboot
 )
 
 $ErrorActionPreference = 'Stop'
@@ -132,8 +132,8 @@ Write-Host 'Clone preparation complete.'
 Write-Host "First boot task: $TaskName"
 Write-Host "First boot script: $FirstBootScriptPath"
 
-if (-not $SkipShutdown) {
-    if ($PSCmdlet.ShouldProcess('Computer', 'Shutdown for cloning')) {
-        Stop-Computer -Force
+if (-not $SkipReboot) {
+    if ($PSCmdlet.ShouldProcess('Computer', 'Reboot to run first-boot clone preparation task')) {
+        Restart-Computer -Force
     }
 }

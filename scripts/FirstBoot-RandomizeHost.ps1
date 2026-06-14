@@ -52,5 +52,5 @@ if (-not [string]::IsNullOrWhiteSpace($OSConfigRepoPath)) {
     }
 }
 
-Write-Host 'Restarting after first-boot hostname randomization.'
-Restart-Computer -Force
+Write-Host 'Shutting down after first-boot hostname randomization. The hostname change will apply on the next power-on.'
+Stop-Computer -Force

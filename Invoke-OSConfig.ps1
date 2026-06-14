@@ -10,7 +10,7 @@ param(
     [switch]$SkipHealthCheck,
     [switch]$PrepareClone,
     [switch]$RemoveOSConfigRepo,
-    [switch]$SkipShutdown,
+    [switch]$SkipReboot,
     [switch]$ContinueOnError
 )
 
@@ -80,8 +80,8 @@ if ($PrepareClone) {
             $prepareArgs.RemoveOSConfigRepo = $true
         }
 
-        if ($SkipShutdown) {
-            $prepareArgs.SkipShutdown = $true
+        if ($SkipReboot) {
+            $prepareArgs.SkipReboot = $true
         }
 
         & (Join-Path $repoRoot 'scripts\Prepare-Clone.ps1') @prepareArgs
