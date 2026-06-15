@@ -134,6 +134,8 @@ Write-Host "First boot script: $FirstBootScriptPath"
 
 if (-not $SkipReboot) {
     if ($PSCmdlet.ShouldProcess('Computer', 'Reboot to run first-boot clone preparation task')) {
+        Write-Host 'Waiting 2 minutes before rebooting.'
+        Start-Sleep -Seconds 120
         Restart-Computer -Force
     }
 }
