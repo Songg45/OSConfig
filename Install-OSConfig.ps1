@@ -2,8 +2,8 @@
 
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [ValidateSet('Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools', 'EverydayApps', 'Runtimes', 'Communication', 'Productivity', 'UserProfileSeed')]
-    [string[]]$Component = @('Runtimes', 'Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools', 'EverydayApps', 'Communication', 'Productivity', 'UserProfileSeed'),
+    [ValidateSet('WindowsUpdates', 'Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools', 'EverydayApps', 'Runtimes', 'Communication', 'Productivity', 'UserProfileSeed')]
+    [string[]]$Component = @('WindowsUpdates', 'Runtimes', 'Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools', 'EverydayApps', 'Communication', 'Productivity', 'UserProfileSeed'),
     [switch]$ForceDownload,
     [switch]$SkipValidation,
     [switch]$ContinueOnError
@@ -11,6 +11,14 @@ param(
 
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+function Format-ElapsedTime {
+    param(
+        [timespan]$Elapsed
+    )
+
+    return '{0:00}:{1:00}:{2:00}' -f [math]::Floor($Elapsed.TotalHours), $Elapsed.Minutes, $Elapsed.Seconds
+}
 
 function Test-IsAdministrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -24,6 +32,9 @@ if (-not (Test-IsAdministrator)) {
 }
 
 $installSteps = [ordered]@{
+    WindowsUpdates = @{
+        Path = Join-Path $PSScriptRoot 'scripts\Install-WindowsUpdates.ps1'
+    }
     Runtimes = @{
         Path = Join-Path $PSScriptRoot 'scripts\Install-Runtimes.ps1'
     }
@@ -60,6 +71,10 @@ $installSteps = [ordered]@{
 }
 
 $failures = @()
+$installStarted = Get-Date
+
+Write-Host 'OSConfig installation starting.'
+Write-Host "Started: $($installStarted.ToString('yyyy-MM-dd HH:mm:ss'))"
 
 foreach ($componentName in $Component) {
     $step = $installSteps[$componentName]
@@ -84,11 +99,19 @@ foreach ($componentName in $Component) {
 
     try {
         if ($PSCmdlet.ShouldProcess($componentName, "Run $($step.Path) $($arguments -join ' ')")) {
+            $stepStarted = Get-Date
             Write-Host "Installing $componentName..."
+            Write-Host "Started: $($stepStarted.ToString('yyyy-MM-dd HH:mm:ss'))"
             & $step.Path @arguments
+            $stepEnded = Get-Date
             Write-Host "Finished $componentName."
+            Write-Host "Ended: $($stepEnded.ToString('yyyy-MM-dd HH:mm:ss'))"
+            Write-Host "Elapsed: $(Format-ElapsedTime -Elapsed ($stepEnded - $stepStarted))"
         }
     } catch {
+        $stepEnded = Get-Date
+        Write-Host "Ended: $($stepEnded.ToString('yyyy-MM-dd HH:mm:ss'))"
+        Write-Host "Elapsed: $(Format-ElapsedTime -Elapsed ($stepEnded - $stepStarted))"
         $failures += [pscustomobject]@{
             Component = $componentName
             Error = $_.Exception.Message
@@ -107,4 +130,8 @@ if ($failures.Count -gt 0) {
     throw "$($failures.Count) OSConfig component install step(s) failed."
 }
 
+$installEnded = Get-Date
+Write-Host "OSConfig installation started: $($installStarted.ToString('yyyy-MM-dd HH:mm:ss'))"
+Write-Host "OSConfig installation ended: $($installEnded.ToString('yyyy-MM-dd HH:mm:ss'))"
+Write-Host "OSConfig installation elapsed: $(Format-ElapsedTime -Elapsed ($installEnded - $installStarted))"
 Write-Host 'OSConfig installation completed.'

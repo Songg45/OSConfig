@@ -12,6 +12,7 @@ The goal is to build repeatable PowerShell-based setup steps for installing comm
 - Sysinternals Suite
 - Visual C++ runtimes
 - .NET updates
+- Windows updates
 - Python
 - Additional baseline Windows VM tooling as needed
 
@@ -30,6 +31,7 @@ assets/
     cats/
 scripts/
   Install-Sysmon.ps1
+  Install-WindowsUpdates.ps1
   Install-Winlogbeat.ps1
   Install-Metricbeat.ps1
   Install-Browsers.ps1
@@ -242,6 +244,22 @@ Install or update everyday apps directly from an elevated PowerShell session:
 ```
 
 The installer downloads VLC from VideoLAN, Spotify from Spotify's Windows installer endpoint, and GIMP from the official GIMP Windows download path. It installs each app silently and validates that each app is present. It is safe to run repeatedly; existing installs are skipped by default. Use `-ForceDownload` to refresh the installer cache and rerun installation.
+
+### Windows Updates
+
+The Windows updates installer searches for applicable Microsoft software updates, accepts update EULAs when needed, downloads the updates, and installs them through the built-in Windows Update COM API.
+
+Run Windows updates directly from an elevated PowerShell session:
+
+```powershell
+.\scripts\Install-WindowsUpdates.ps1
+```
+
+Run only the Windows updates component through the orchestrator:
+
+```powershell
+.\Invoke-OSConfig.ps1 -Component WindowsUpdates -SkipHealthCheck
+```
 
 ### Runtimes And Dependencies
 

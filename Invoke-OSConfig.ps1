@@ -2,8 +2,8 @@
 
 [CmdletBinding()]
 param(
-    [ValidateSet('Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools', 'EverydayApps', 'Runtimes', 'Communication', 'Productivity', 'UserProfileSeed')]
-    [string[]]$Component = @('Runtimes', 'Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools', 'EverydayApps', 'Communication', 'Productivity', 'UserProfileSeed'),
+    [ValidateSet('WindowsUpdates', 'Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools', 'EverydayApps', 'Runtimes', 'Communication', 'Productivity', 'UserProfileSeed')]
+    [string[]]$Component = @('WindowsUpdates', 'Runtimes', 'Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools', 'EverydayApps', 'Communication', 'Productivity', 'UserProfileSeed'),
     [switch]$ForceDownload,
     [switch]$SkipValidation,
     [switch]$SkipInstall,
@@ -17,6 +17,14 @@ param(
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
+function Format-ElapsedTime {
+    param(
+        [timespan]$Elapsed
+    )
+
+    return '{0:00}:{1:00}:{2:00}' -f [math]::Floor($Elapsed.TotalHours), $Elapsed.Minutes, $Elapsed.Seconds
+}
+
 function Invoke-Step {
     param(
         [string]$Name,
@@ -25,10 +33,18 @@ function Invoke-Step {
 
     Write-Host ""
     Write-Host "===== $Name ====="
+    $stepStarted = Get-Date
+    Write-Host "Started: $($stepStarted.ToString('yyyy-MM-dd HH:mm:ss'))"
 
     try {
         & $ScriptBlock
+        $stepEnded = Get-Date
+        Write-Host "Ended: $($stepEnded.ToString('yyyy-MM-dd HH:mm:ss'))"
+        Write-Host "Elapsed: $(Format-ElapsedTime -Elapsed ($stepEnded - $stepStarted))"
     } catch {
+        $stepEnded = Get-Date
+        Write-Host "Ended: $($stepEnded.ToString('yyyy-MM-dd HH:mm:ss'))"
+        Write-Host "Elapsed: $(Format-ElapsedTime -Elapsed ($stepEnded - $stepStarted))"
         Write-Warning "$Name failed. $($_.Exception.Message)"
 
         if (-not $ContinueOnError) {
@@ -38,6 +54,10 @@ function Invoke-Step {
 }
 
 $repoRoot = $PSScriptRoot
+$wrapperStarted = Get-Date
+
+Write-Host 'OSConfig wrapper starting.'
+Write-Host "Started: $($wrapperStarted.ToString('yyyy-MM-dd HH:mm:ss'))"
 
 if (-not $SkipInstall) {
     Invoke-Step -Name 'Install OSConfig Components' -ScriptBlock {
@@ -64,11 +84,7 @@ if (-not $SkipInstall) {
 if (-not $SkipHealthCheck) {
     Invoke-Step -Name 'Test OSConfig Health' -ScriptBlock {
         $healthScript = Join-Path $repoRoot 'Test-OSConfig.ps1'
-        $healthProcess = Start-Process -FilePath 'PowerShell.exe' -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $healthScript) -Wait -PassThru
-
-        if ($healthProcess.ExitCode -ne 0) {
-            throw "OSConfig health check failed with exit code $($healthProcess.ExitCode)."
-        }
+        & $healthScript -NoExit
     }
 }
 
@@ -89,4 +105,8 @@ if ($PrepareClone) {
 }
 
 Write-Host ""
+$wrapperEnded = Get-Date
+Write-Host "OSConfig wrapper started: $($wrapperStarted.ToString('yyyy-MM-dd HH:mm:ss'))"
+Write-Host "OSConfig wrapper ended: $($wrapperEnded.ToString('yyyy-MM-dd HH:mm:ss'))"
+Write-Host "OSConfig wrapper elapsed: $(Format-ElapsedTime -Elapsed ($wrapperEnded - $wrapperStarted))"
 Write-Host 'OSConfig wrapper completed.'

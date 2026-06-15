@@ -3,10 +3,19 @@
 [CmdletBinding()]
 param(
     [string]$SeedRoot = $env:USERPROFILE,
-    [switch]$AsJson
+    [switch]$AsJson,
+    [switch]$NoExit
 )
 
 $ErrorActionPreference = 'Stop'
+
+function Format-ElapsedTime {
+    param(
+        [timespan]$Elapsed
+    )
+
+    return '{0:00}:{1:00}:{2:00}' -f [math]::Floor($Elapsed.TotalHours), $Elapsed.Minutes, $Elapsed.Seconds
+}
 
 function Test-InstalledProgram {
     param(
@@ -119,6 +128,7 @@ function Test-ProgramCheck {
 $repoRoot = $PSScriptRoot
 $SeedRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($SeedRoot)
 $results = @()
+$healthStarted = Get-Date
 
 $results += Test-PathCheck -Category 'Configuration' -Name 'Sysmon config' -Paths @(Join-Path $repoRoot 'configuration\sysmon\sysmonconfig-export.xml')
 $results += Test-PathCheck -Category 'Configuration' -Name 'Winlogbeat config' -Paths @(Join-Path $repoRoot 'configuration\winlogbeat\winlogbeat.yml')
@@ -181,6 +191,7 @@ if ($AsJson) {
 } else {
     Write-Host 'OSConfig health check'
     Write-Host '====================='
+    Write-Host "Started: $($healthStarted.ToString('yyyy-MM-dd HH:mm:ss'))"
     Write-Host ''
 
     foreach ($group in ($results | Group-Object Category)) {
@@ -196,10 +207,22 @@ if ($AsJson) {
 
     Write-Host "Required failures: $($requiredFailures.Count)"
     Write-Host "Optional warnings: $($optionalFailures.Count)"
+
+    $healthEnded = Get-Date
+    Write-Host "Ended: $($healthEnded.ToString('yyyy-MM-dd HH:mm:ss'))"
+    Write-Host "Elapsed: $(Format-ElapsedTime -Elapsed ($healthEnded - $healthStarted))"
 }
 
 if ($requiredFailures.Count -gt 0) {
+    if ($NoExit) {
+        throw "$($requiredFailures.Count) required OSConfig health check(s) failed."
+    }
+
     exit 1
+}
+
+if ($NoExit) {
+    return
 }
 
 exit 0
