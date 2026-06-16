@@ -23,7 +23,8 @@ function Test-IsAdministrator {
 
 function Stop-AndDisableBeat {
     param(
-        [string]$ServiceName
+        [string]$ServiceName,
+        [int]$StopTimeoutSeconds = 60
     )
 
     $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
@@ -36,6 +37,7 @@ function Stop-AndDisableBeat {
     if ($service.Status -ne 'Stopped') {
         if ($PSCmdlet.ShouldProcess($ServiceName, 'Stop service')) {
             Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
+            $service.WaitForStatus('Stopped', [timespan]::FromSeconds($StopTimeoutSeconds))
         }
     }
 
@@ -46,15 +48,31 @@ function Stop-AndDisableBeat {
 
 function Remove-PathIfPresent {
     param(
-        [string]$Path
+        [string]$Path,
+        [int]$RetryCount = 12,
+        [int]$RetryDelaySeconds = 5
     )
 
     if (-not (Test-Path -LiteralPath $Path)) {
         return
     }
 
-    if ($PSCmdlet.ShouldProcess($Path, 'Remove path')) {
-        Remove-Item -LiteralPath $Path -Recurse -Force
+    if (-not $PSCmdlet.ShouldProcess($Path, 'Remove path')) {
+        return
+    }
+
+    for ($attempt = 1; $attempt -le $RetryCount; $attempt++) {
+        try {
+            Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction Stop
+            return
+        } catch {
+            if ($attempt -eq $RetryCount) {
+                throw
+            }
+
+            Write-Warning "Failed to remove $Path on attempt $attempt of $RetryCount. $($_.Exception.Message)"
+            Start-Sleep -Seconds $RetryDelaySeconds
+        }
     }
 }
 
