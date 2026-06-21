@@ -63,6 +63,62 @@ function Install-ExePackage {
     }
 }
 
+function Install-CurrentUserExePackage {
+    param(
+        [string]$Name,
+        [string]$InstallerPath,
+        [string[]]$ArgumentList,
+        [int]$TimeoutSeconds = 300
+    )
+
+    if (-not (Test-Path $InstallerPath)) {
+        throw "$Name installer was not found at $InstallerPath."
+    }
+
+    $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+    $taskName = "OSConfig-Install-$($Name -replace '[^A-Za-z0-9]', '')"
+    $escapedArguments = ($ArgumentList | ForEach-Object { '"' + ($_ -replace '"', '\"') + '"' }) -join ' '
+    $taskArgument = "-NoProfile -ExecutionPolicy Bypass -Command `"Start-Process -FilePath '$InstallerPath' -ArgumentList '$escapedArguments' -Wait`""
+
+    if ($PSCmdlet.ShouldProcess($Name, "Install as current user $currentIdentity from $InstallerPath")) {
+        try {
+            Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
+
+            $action = New-ScheduledTaskAction -Execute 'PowerShell.exe' -Argument $taskArgument
+            $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1)
+            $principal = New-ScheduledTaskPrincipal -UserId $currentIdentity -LogonType Interactive -RunLevel Limited
+            $settings = New-ScheduledTaskSettingsSet -Compatibility Win8 -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+            $task = New-ScheduledTask -Action $action -Trigger $trigger -Principal $principal -Settings $settings
+
+            Register-ScheduledTask -TaskName $taskName -InputObject $task -Force | Out-Null
+            Start-ScheduledTask -TaskName $taskName
+
+            $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+
+            do {
+                Start-Sleep -Seconds 2
+                $scheduledTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+
+                if ($scheduledTask -and $scheduledTask.State -ne 'Running') {
+                    break
+                }
+            } while ((Get-Date) -lt $deadline)
+
+            if ((Get-Date) -ge $deadline) {
+                throw "$Name current-user installer did not finish within $TimeoutSeconds seconds."
+            }
+
+            $taskInfo = Get-ScheduledTaskInfo -TaskName $taskName -ErrorAction SilentlyContinue
+
+            if ($taskInfo -and $taskInfo.LastTaskResult -ne 0) {
+                throw "$Name current-user installer failed with scheduled task result $($taskInfo.LastTaskResult)."
+            }
+        } finally {
+            Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 function Invoke-EverydayAppValidation {
     param(
         [int]$TimeoutSeconds = 90
@@ -155,6 +211,7 @@ $apps = @(
         Url = 'https://download.scdn.co/SpotifySetup.exe'
         Path = Join-Path $DownloadRoot 'SpotifySetup.exe'
         Arguments = @('/silent')
+        InstallAsCurrentUser = $true
     },
     @{
         Name = 'GIMP'
@@ -195,7 +252,11 @@ foreach ($app in $apps) {
         Write-Host "$($app.Name) is already installed; refreshing install with latest downloaded installer."
     }
 
-    Install-ExePackage -Name $app.Name -InstallerPath $app.Path -ArgumentList $app.Arguments
+    if ($app.InstallAsCurrentUser) {
+        Install-CurrentUserExePackage -Name $app.Name -InstallerPath $app.Path -ArgumentList $app.Arguments
+    } else {
+        Install-ExePackage -Name $app.Name -InstallerPath $app.Path -ArgumentList $app.Arguments
+    }
 }
 
 if (-not $SkipValidation) {
