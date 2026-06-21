@@ -207,7 +207,7 @@ function Invoke-WindowsUpdatePhase {
         Write-Host "Windows updates installed: $($result.UpdatesInstalled)"
         Write-Host "Windows update reboot required: $($result.RebootRequired)"
 
-        if (-not $result.RebootRequired) {
+        if ([int]$result.UpdatesFound -eq 0) {
             Unregister-ScheduledTask -TaskName $ResumeTaskName -Confirm:$false -ErrorAction SilentlyContinue
 
             if (Test-Path -LiteralPath $StatePath) {
@@ -229,9 +229,10 @@ function Invoke-WindowsUpdatePhase {
         $resumeArgs = Get-ResumeArgumentList
         Register-OSConfigResumeTask -TaskName $ResumeTaskName -ArgumentList $resumeArgs
 
-        Write-Host "Windows updates require reboot $($state.WindowsUpdateReboots) of $MaxWindowsUpdateReboots."
+        Write-Host "Windows updates were found. Rebooting for update pass $($state.WindowsUpdateReboots) of $MaxWindowsUpdateReboots."
+        Write-Host "Windows update reported reboot required: $($result.RebootRequired)"
         Write-Host "Registered resume task: $ResumeTaskName"
-        Write-Host 'Restarting in 30 seconds so Windows Updates can continue.'
+        Write-Host 'Restarting in 30 seconds so Windows Updates can search again.'
         Start-Sleep -Seconds 30
 
         if ($script:TranscriptStarted) {

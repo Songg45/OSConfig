@@ -89,7 +89,7 @@ If Windows Updates require a reboot, the wrapper registers an `OSConfig-Resume` 
 irm http://osconfig.puterlabs.us | iex
 ```
 
-The bootstrap pulls the latest repository content, resumes `Invoke-OSConfig.ps1`, and repeats Windows Updates until no reboot is required or the `-MaxWindowsUpdateReboots` limit is reached.
+The bootstrap pulls the latest repository content, resumes `Invoke-OSConfig.ps1`, and repeats Windows Updates until Windows Update no longer finds anything to install or the `-MaxWindowsUpdateReboots` limit is reached.
 
 Run installation, health check, clone prep, OSConfig repo cleanup, reboot, and first-boot shutdown:
 
