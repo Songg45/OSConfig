@@ -77,6 +77,20 @@ Run the full wrapper, including installation and health check:
 .\Invoke-OSConfig.ps1
 ```
 
+The wrapper writes a transcript log under:
+
+```text
+C:\ProgramData\OSConfig\Logs
+```
+
+If Windows Updates require a reboot, the wrapper registers an `OSConfig-Resume` startup task. The task runs:
+
+```powershell
+irm http://osconfig.puterlabs.us | iex
+```
+
+The bootstrap pulls the latest repository content, resumes `Invoke-OSConfig.ps1`, and repeats Windows Updates until no reboot is required or the `-MaxWindowsUpdateReboots` limit is reached.
+
 Run installation, health check, clone prep, OSConfig repo cleanup, reboot, and first-boot shutdown:
 
 ```powershell

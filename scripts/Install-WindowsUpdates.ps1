@@ -6,7 +6,8 @@ param(
     [switch]$ForceDownload,
     [switch]$SkipValidation,
     [switch]$SkipInstall,
-    [switch]$ContinueOnError
+    [switch]$ContinueOnError,
+    [switch]$AsJson
 )
 
 $ErrorActionPreference = 'Stop'
@@ -23,6 +24,30 @@ if (-not (Test-IsAdministrator)) {
     throw 'Install-WindowsUpdates.ps1 must be run from an elevated PowerShell session.'
 }
 
+function Write-WindowsUpdateResult {
+    param(
+        [int]$UpdatesFound,
+        [bool]$UpdatesInstalled,
+        [bool]$RebootRequired,
+        [Nullable[int]]$DownloadResultCode = $null,
+        [Nullable[int]]$InstallResultCode = $null,
+        [string]$Status = 'Succeeded'
+    )
+
+    $result = [pscustomobject]@{
+        UpdatesFound = $UpdatesFound
+        UpdatesInstalled = $UpdatesInstalled
+        RebootRequired = $RebootRequired
+        DownloadResultCode = $DownloadResultCode
+        InstallResultCode = $InstallResultCode
+        Status = $Status
+    }
+
+    if ($AsJson) {
+        $result | ConvertTo-Json -Compress
+    }
+}
+
 $criteria = "IsInstalled=0 and IsHidden=0"
 
 if (-not $IncludeDrivers) {
@@ -37,6 +62,7 @@ $searchResult = $searcher.Search($criteria)
 
 if ($searchResult.Updates.Count -eq 0) {
     Write-Host 'No applicable Windows updates were found.'
+    Write-WindowsUpdateResult -UpdatesFound 0 -UpdatesInstalled $false -RebootRequired $false -Status 'NoUpdatesFound'
     return
 }
 
@@ -57,6 +83,7 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; $i++) {
 
 if ($SkipInstall) {
     Write-Host 'SkipInstall was set. Windows updates were listed but not installed.'
+    Write-WindowsUpdateResult -UpdatesFound $updatesToInstall.Count -UpdatesInstalled $false -RebootRequired $false -Status 'Skipped'
     return
 }
 
@@ -101,3 +128,5 @@ if ($installResult.ResultCode -notin @(2, 3)) {
 
     throw $message
 }
+
+Write-WindowsUpdateResult -UpdatesFound $updatesToInstall.Count -UpdatesInstalled $true -RebootRequired $installResult.RebootRequired -DownloadResultCode $downloadResult.ResultCode -InstallResultCode $installResult.ResultCode

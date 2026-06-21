@@ -87,4 +87,12 @@ if (-not (Test-Path $invokeScript)) {
 }
 
 Write-Host 'Starting OSConfig installation and clone preparation.'
-& PowerShell.exe -NoProfile -ExecutionPolicy Bypass -File $invokeScript -PrepareClone -RemoveOSConfigRepo
+
+if (-not [string]::IsNullOrWhiteSpace($env:OSCONFIG_RESUME_ARGS_B64)) {
+    Write-Host 'OSConfig resume arguments were supplied by the startup task.'
+    $resumeJson = [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($env:OSCONFIG_RESUME_ARGS_B64))
+    $resumeArgs = @($resumeJson | ConvertFrom-Json)
+    & PowerShell.exe -NoProfile -ExecutionPolicy Bypass -File $invokeScript @resumeArgs
+} else {
+    & PowerShell.exe -NoProfile -ExecutionPolicy Bypass -File $invokeScript -PrepareClone -RemoveOSConfigRepo
+}
