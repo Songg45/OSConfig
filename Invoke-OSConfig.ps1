@@ -169,6 +169,16 @@ function Save-OSConfigState {
     $State | ConvertTo-Json -Depth 5 | Set-Content -Path $Path -Encoding ASCII
 }
 
+function Set-OSConfigStateValue {
+    param(
+        [object]$State,
+        [string]$Name,
+        [object]$Value
+    )
+
+    $State | Add-Member -NotePropertyName $Name -NotePropertyValue $Value -Force
+}
+
 function Invoke-WindowsUpdatePhase {
     param(
         [string]$WindowsUpdateScript,
@@ -217,19 +227,20 @@ function Invoke-WindowsUpdatePhase {
             return
         }
 
-        $state.WindowsUpdateReboots = [int]$state.WindowsUpdateReboots + 1
+        $windowsUpdateReboots = [int]$state.WindowsUpdateReboots + 1
+        Set-OSConfigStateValue -State $state -Name 'WindowsUpdateReboots' -Value $windowsUpdateReboots
 
-        if ($state.WindowsUpdateReboots -gt $MaxWindowsUpdateReboots) {
+        if ($windowsUpdateReboots -gt $MaxWindowsUpdateReboots) {
             throw "Windows updates requested more than $MaxWindowsUpdateReboots reboot(s)."
         }
 
-        $state.LastRebootRequestedAt = (Get-Date).ToString('o')
+        Set-OSConfigStateValue -State $state -Name 'LastRebootRequestedAt' -Value (Get-Date).ToString('o')
         Save-OSConfigState -Path $StatePath -State $state
 
         $resumeArgs = Get-ResumeArgumentList
         Register-OSConfigResumeTask -TaskName $ResumeTaskName -ArgumentList $resumeArgs
 
-        Write-Host "Windows updates were found. Rebooting for update pass $($state.WindowsUpdateReboots) of $MaxWindowsUpdateReboots."
+        Write-Host "Windows updates were found. Rebooting for update pass $windowsUpdateReboots of $MaxWindowsUpdateReboots."
         Write-Host "Windows update reported reboot required: $($result.RebootRequired)"
         Write-Host "Registered resume task: $ResumeTaskName"
         Write-Host 'Restarting in 30 seconds so Windows Updates can search again.'
