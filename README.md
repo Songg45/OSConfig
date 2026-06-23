@@ -257,7 +257,7 @@ Install or update everyday apps directly from an elevated PowerShell session:
 .\scripts\Install-EverydayApps.ps1
 ```
 
-The installer downloads VLC from VideoLAN, Spotify from Spotify's Windows installer endpoint, and GIMP from the official GIMP Windows download path. It installs each app silently and validates that each app is present. It is safe to run repeatedly; existing installs are skipped by default. Use `-ForceDownload` to refresh the installer cache and rerun installation.
+The installer downloads VLC from VideoLAN, Spotify from Spotify's Windows installer endpoint, and GIMP from the official GIMP Windows download path. VLC and GIMP install during OSConfig. Spotify is copied to a deferred cache and installed without elevation by a one-time task at the target user's next interactive logon. It is safe to run repeatedly; existing installs are skipped by default. Use `-ForceDownload` to refresh the installer cache and rerun installation.
 
 ### Windows Updates
 

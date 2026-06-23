@@ -3,6 +3,7 @@
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [string]$DownloadRoot,
+    [string]$UserProfileRoot = $env:USERPROFILE,
     [switch]$ForceDownload,
     [switch]$SkipValidation,
     [switch]$Uninstall
@@ -63,59 +64,90 @@ function Install-ExePackage {
     }
 }
 
-function Install-CurrentUserExePackage {
+function Register-SpotifyFirstLogonInstall {
     param(
-        [string]$Name,
         [string]$InstallerPath,
-        [string[]]$ArgumentList,
-        [int]$TimeoutSeconds = 300
+        [string]$ProfileRoot,
+        [string]$TaskName = 'OSConfig-Install-Spotify'
     )
 
     if (-not (Test-Path $InstallerPath)) {
-        throw "$Name installer was not found at $InstallerPath."
+        throw "Spotify installer was not found at $InstallerPath."
     }
 
-    $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
-    $taskName = "OSConfig-Install-$($Name -replace '[^A-Za-z0-9]', '')"
-    $escapedArguments = ($ArgumentList | ForEach-Object { '"' + ($_ -replace '"', '\"') + '"' }) -join ' '
-    $taskArgument = "-NoProfile -ExecutionPolicy Bypass -Command `"Start-Process -FilePath '$InstallerPath' -ArgumentList '$escapedArguments' -Wait`""
+    $profile = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\*' -ErrorAction SilentlyContinue |
+        Where-Object {
+            $profilePath = [Environment]::ExpandEnvironmentVariables($_.ProfileImagePath)
+            $profilePath.TrimEnd('\') -ieq $ProfileRoot.TrimEnd('\')
+        } |
+        Select-Object -First 1
 
-    if ($PSCmdlet.ShouldProcess($Name, "Install as current user $currentIdentity from $InstallerPath")) {
-        try {
-            Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
+    if (-not $profile) {
+        throw "Unable to resolve the user SID for $ProfileRoot."
+    }
 
-            $action = New-ScheduledTaskAction -Execute 'PowerShell.exe' -Argument $taskArgument
-            $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1)
-            $principal = New-ScheduledTaskPrincipal -UserId $currentIdentity -LogonType Interactive -RunLevel Limited
-            $settings = New-ScheduledTaskSettingsSet -Compatibility Win8 -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-            $task = New-ScheduledTask -Action $action -Trigger $trigger -Principal $principal -Settings $settings
+    $profileSid = $profile.PSChildName
+    $userId = ([Security.Principal.SecurityIdentifier]$profileSid).Translate([Security.Principal.NTAccount]).Value
+    $deferredRoot = Join-Path ([Environment]::GetFolderPath('CommonApplicationData')) 'OSConfig\Deferred\Spotify'
+    $deferredInstaller = Join-Path $deferredRoot 'SpotifySetup.exe'
+    $helperPath = Join-Path $deferredRoot 'Install-Spotify-FirstLogon.ps1'
 
-            Register-ScheduledTask -TaskName $taskName -InputObject $task -Force | Out-Null
-            Start-ScheduledTask -TaskName $taskName
+    $helperContent = @'
+#Requires -Version 5.1
 
-            $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+param(
+    [string]$InstallerPath,
+    [string]$TaskName
+)
 
-            do {
-                Start-Sleep -Seconds 2
-                $scheduledTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+$ErrorActionPreference = 'Stop'
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-                if ($scheduledTask -and $scheduledTask.State -ne 'Running') {
-                    break
-                }
-            } while ((Get-Date) -lt $deadline)
+$logRoot = Join-Path $env:LOCALAPPDATA 'OSConfig'
+$logPath = Join-Path $logRoot 'Spotify-FirstLogon.log'
+$spotifyPath = Join-Path $env:APPDATA 'Spotify\Spotify.exe'
+New-Item -Path $logRoot -ItemType Directory -Force | Out-Null
 
-            if ((Get-Date) -ge $deadline) {
-                throw "$Name current-user installer did not finish within $TimeoutSeconds seconds."
-            }
+try {
+    Add-Content -Path $logPath -Value "$(Get-Date -Format o) Starting deferred Spotify installation."
 
-            $taskInfo = Get-ScheduledTaskInfo -TaskName $taskName -ErrorAction SilentlyContinue
+    if (-not (Test-Path -LiteralPath $spotifyPath)) {
+        $process = Start-Process -FilePath $InstallerPath -ArgumentList '/silent' -PassThru
+        $process.WaitForExit(300000)
+        $deadline = (Get-Date).AddMinutes(5)
 
-            if ($taskInfo -and $taskInfo.LastTaskResult -ne 0) {
-                throw "$Name current-user installer failed with scheduled task result $($taskInfo.LastTaskResult)."
-            }
-        } finally {
-            Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
+        while (-not (Test-Path -LiteralPath $spotifyPath) -and (Get-Date) -lt $deadline) {
+            Start-Sleep -Seconds 5
         }
+    }
+
+    if (-not (Test-Path -LiteralPath $spotifyPath)) {
+        throw "Spotify was not found at $spotifyPath after installation."
+    }
+
+    Add-Content -Path $logPath -Value "$(Get-Date -Format o) Spotify installation completed."
+    & schtasks.exe /Delete /TN $TaskName /F | Out-Null
+} catch {
+    Add-Content -Path $logPath -Value "$(Get-Date -Format o) Spotify installation failed: $($_.Exception.Message)"
+    exit 1
+}
+'@
+
+    if ($PSCmdlet.ShouldProcess($userId, 'Register deferred Spotify first-logon installer')) {
+        New-Item -Path $deferredRoot -ItemType Directory -Force | Out-Null
+        Copy-Item -LiteralPath $InstallerPath -Destination $deferredInstaller -Force
+        Set-Content -Path $helperPath -Value $helperContent -Encoding ASCII
+        Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue
+
+        $taskArgument = "-NoProfile -ExecutionPolicy Bypass -File `"$helperPath`" -InstallerPath `"$deferredInstaller`" -TaskName `"$TaskName`""
+        $action = New-ScheduledTaskAction -Execute 'PowerShell.exe' -Argument $taskArgument
+        $trigger = New-ScheduledTaskTrigger -AtLogOn -User $profileSid
+        $principal = New-ScheduledTaskPrincipal -UserId $profileSid -LogonType Interactive -RunLevel Limited
+        $settings = New-ScheduledTaskSettingsSet -Compatibility Win8 -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+        $task = New-ScheduledTask -Action $action -Trigger $trigger -Principal $principal -Settings $settings
+
+        Register-ScheduledTask -TaskName $TaskName -InputObject $task -Force | Out-Null
+        Write-Host "Spotify will install as $userId at the next interactive logon."
     }
 }
 
@@ -131,14 +163,6 @@ function Invoke-EverydayAppValidation {
             ExecutablePaths = @(
                 'C:\Program Files\VideoLAN\VLC\vlc.exe',
                 'C:\Program Files (x86)\VideoLAN\VLC\vlc.exe'
-            )
-        },
-        @{
-            Name = 'Spotify'
-            DisplayNamePattern = 'Spotify*'
-            ExecutablePaths = @(
-                "$env:APPDATA\Spotify\Spotify.exe",
-                "$env:LOCALAPPDATA\Microsoft\WindowsApps\Spotify.exe"
             )
         },
         @{
@@ -211,7 +235,7 @@ $apps = @(
         Url = 'https://download.scdn.co/SpotifySetup.exe'
         Path = Join-Path $DownloadRoot 'SpotifySetup.exe'
         Arguments = @('/silent')
-        InstallAsCurrentUser = $true
+        DeferUntilUserLogon = $true
     },
     @{
         Name = 'GIMP'
@@ -252,8 +276,8 @@ foreach ($app in $apps) {
         Write-Host "$($app.Name) is already installed; refreshing install with latest downloaded installer."
     }
 
-    if ($app.InstallAsCurrentUser) {
-        Install-CurrentUserExePackage -Name $app.Name -InstallerPath $app.Path -ArgumentList $app.Arguments
+    if ($app.DeferUntilUserLogon) {
+        Register-SpotifyFirstLogonInstall -InstallerPath $app.Path -ProfileRoot $UserProfileRoot
     } else {
         Install-ExePackage -Name $app.Name -InstallerPath $app.Path -ArgumentList $app.Arguments
     }
@@ -261,4 +285,14 @@ foreach ($app in $apps) {
 
 if (-not $SkipValidation) {
     Invoke-EverydayAppValidation
+
+    if (Get-ScheduledTask -TaskName 'OSConfig-Install-Spotify' -ErrorAction SilentlyContinue) {
+        Write-Host 'Spotify deferred first-logon task is registered.'
+    } else {
+        $spotifyPath = Join-Path $UserProfileRoot 'AppData\Roaming\Spotify\Spotify.exe'
+
+        if (-not (Test-Path -LiteralPath $spotifyPath)) {
+            throw 'Spotify is not installed and its deferred first-logon task was not found.'
+        }
+    }
 }

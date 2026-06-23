@@ -98,8 +98,9 @@ foreach ($componentName in $Component) {
         $arguments += '-SkipValidation'
     }
 
-    if ($componentName -eq 'UserProfileSeed') {
-        $arguments += '-SeedRoot'
+    if ($componentName -in @('EverydayApps', 'UserProfileSeed')) {
+        $profileParameter = if ($componentName -eq 'EverydayApps') { '-UserProfileRoot' } else { '-SeedRoot' }
+        $arguments += $profileParameter
         $arguments += $UserProfileRoot
     }
 
