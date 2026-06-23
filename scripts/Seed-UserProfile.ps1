@@ -504,54 +504,67 @@ function Set-LocalUserFullName {
 }
 
 function Set-ExplorerBaseline {
-    $profile = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\*' -ErrorAction SilentlyContinue |
-        Where-Object {
-            $profilePath = [Environment]::ExpandEnvironmentVariables($_.ProfileImagePath)
-            $profilePath.TrimEnd('\') -ieq $SeedRoot.TrimEnd('\')
-        } |
-        Select-Object -First 1
-
-    if (-not $profile) {
-        throw "Unable to find the profile SID for $SeedRoot."
-    }
-
-    $profileSid = $profile.PSChildName
-    $hiveRoot = "Registry::HKEY_USERS\$profileSid"
     $loadedHiveName = $null
 
-    if (-not (Test-Path -LiteralPath $hiveRoot)) {
-        $ntUserPath = Join-Path $SeedRoot 'NTUSER.DAT'
-
-        if (-not (Test-Path -LiteralPath $ntUserPath)) {
-            throw "User registry hive was not found at $ntUserPath."
-        }
-
-        $loadedHiveName = "OSConfigSeed-$([guid]::NewGuid().ToString('N'))"
-        & reg.exe load "HKU\$loadedHiveName" $ntUserPath | Out-Host
-
-        if ($LASTEXITCODE -ne 0) {
-            throw "Unable to load the user registry hive from $ntUserPath."
-        }
-
-        $hiveRoot = "Registry::HKEY_USERS\$loadedHiveName"
-    }
-
     try {
-        $advancedPath = Join-Path $hiveRoot 'Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+        $profile = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\*' -ErrorAction SilentlyContinue |
+            Where-Object {
+                $profilePath = [Environment]::ExpandEnvironmentVariables($_.ProfileImagePath)
+                $profilePath.TrimEnd('\') -ieq $SeedRoot.TrimEnd('\')
+            } |
+            Select-Object -First 1
+
+        if (-not $profile) {
+            throw "Unable to find the profile SID for $SeedRoot."
+        }
+
+        $profileSid = $profile.PSChildName
+        $registryHiveName = $profileSid
+        $hiveRoot = "Registry::HKEY_USERS\$profileSid"
+
+        if (-not (Test-Path -LiteralPath $hiveRoot)) {
+            $ntUserPath = Join-Path $SeedRoot 'NTUSER.DAT'
+
+            if (-not (Test-Path -LiteralPath $ntUserPath)) {
+                throw "User registry hive was not found at $ntUserPath."
+            }
+
+            $loadedHiveName = "OSConfigSeed-$([guid]::NewGuid().ToString('N'))"
+            & reg.exe load "HKU\$loadedHiveName" $ntUserPath | Out-Host
+
+            if ($LASTEXITCODE -ne 0) {
+                throw "Unable to load the user registry hive from $ntUserPath."
+            }
+
+            $registryHiveName = $loadedHiveName
+        }
+
+        $advancedPath = "HKU\$registryHiveName\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
 
         if ($PSCmdlet.ShouldProcess($advancedPath, 'Set Explorer visibility baseline')) {
-            New-Item -Path $advancedPath -Force | Out-Null
+            foreach ($setting in @(
+                @{ Name = 'Hidden'; Value = 2 },
+                @{ Name = 'ShowSuperHidden'; Value = 0 },
+                @{ Name = 'HideFileExt'; Value = 0 }
+            )) {
+                & reg.exe add $advancedPath /v $setting.Name /t REG_DWORD /d $setting.Value /f | Out-Host
 
-            # Hidden=2 keeps hidden files and folders hidden. HideFileExt=0 shows common file extensions.
-            Set-ItemProperty -Path $advancedPath -Name Hidden -Type DWord -Value 2
-            Set-ItemProperty -Path $advancedPath -Name ShowSuperHidden -Type DWord -Value 0
-            Set-ItemProperty -Path $advancedPath -Name HideFileExt -Type DWord -Value 0
+                if ($LASTEXITCODE -ne 0) {
+                    throw "reg.exe failed to set $($setting.Name) with exit code $LASTEXITCODE."
+                }
+            }
         }
+    } catch {
+        Write-Warning "Unable to set Explorer visibility defaults for $SeedRoot. $($_.Exception.Message)"
     } finally {
         if ($loadedHiveName) {
             [gc]::Collect()
             [gc]::WaitForPendingFinalizers()
             & reg.exe unload "HKU\$loadedHiveName" | Out-Host
+
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warning "Unable to unload temporary registry hive HKU\$loadedHiveName."
+            }
         }
     }
 }
