@@ -16,6 +16,7 @@ param(
     [string]$LogRoot,
     [string]$StateRoot,
     [string]$BootstrapUrl = 'http://osconfig.puterlabs.us',
+    [string]$UserProfileRoot = $env:USERPROFILE,
     [switch]$ResumeOSConfig
 )
 
@@ -28,6 +29,42 @@ function Format-ElapsedTime {
     )
 
     return '{0:00}:{1:00}:{2:00}' -f [math]::Floor($Elapsed.TotalHours), $Elapsed.Minutes, $Elapsed.Seconds
+}
+
+function Resolve-UserProfileRoot {
+    param(
+        [string]$RequestedPath
+    )
+
+    $systemProfilePath = Join-Path $env:SystemRoot 'System32\config\systemprofile'
+
+    if (-not [string]::IsNullOrWhiteSpace($RequestedPath) -and
+        $RequestedPath.TrimEnd('\') -ine $systemProfilePath.TrimEnd('\') -and
+        (Test-Path -LiteralPath $RequestedPath)) {
+        return $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($RequestedPath)
+    }
+
+    $candidate = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\*' -ErrorAction SilentlyContinue |
+        ForEach-Object {
+            $profilePath = [Environment]::ExpandEnvironmentVariables($_.ProfileImagePath)
+
+            if ([string]::IsNullOrWhiteSpace($profilePath) -or
+                $profilePath -like "$env:SystemRoot*" -or
+                $profilePath -match '\\(Default|Public|defaultuser0)$' -or
+                -not (Test-Path -LiteralPath (Join-Path $profilePath 'NTUSER.DAT'))) {
+                return $null
+            }
+
+            Get-Item -LiteralPath $profilePath -Force -ErrorAction SilentlyContinue
+        } |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
+
+    if (-not $candidate) {
+        throw 'Unable to resolve a non-system Windows user profile for profile seeding.'
+    }
+
+    return $candidate.FullName
 }
 
 function ConvertTo-CommandArgument {
@@ -105,6 +142,8 @@ function Get-ResumeArgumentList {
     $resumeTokens.Add($StateRoot)
     $resumeTokens.Add('-BootstrapUrl')
     $resumeTokens.Add($BootstrapUrl)
+    $resumeTokens.Add('-UserProfileRoot')
+    $resumeTokens.Add($UserProfileRoot)
     $resumeTokens.Add('-ResumeOSConfig')
 
     $resumeJson = $resumeTokens.ToArray() | ConvertTo-Json -Compress
@@ -257,6 +296,7 @@ function Invoke-WindowsUpdatePhase {
 }
 
 $repoRoot = $PSScriptRoot
+$UserProfileRoot = Resolve-UserProfileRoot -RequestedPath $UserProfileRoot
 
 if ([string]::IsNullOrWhiteSpace($LogRoot)) {
     $LogRoot = Join-Path ([Environment]::GetFolderPath('CommonApplicationData')) 'OSConfig\Logs'
@@ -286,6 +326,7 @@ $wrapperStarted = Get-Date
 Write-Host 'OSConfig wrapper starting.'
 Write-Host "Started: $($wrapperStarted.ToString('yyyy-MM-dd HH:mm:ss'))"
 Write-Host "Log file: $logPath"
+Write-Host "User profile root: $UserProfileRoot"
 
 if ($ResumeOSConfig) {
     Write-Host 'Resuming OSConfig from scheduled startup task.'
@@ -301,6 +342,7 @@ if (-not $SkipInstall -and $remainingComponents.Count -gt 0) {
     Invoke-Step -Name 'Install OSConfig Components' -ScriptBlock {
         $installArgs = @{
             Component = $remainingComponents
+            UserProfileRoot = $UserProfileRoot
         }
 
         if ($ForceDownload) {
@@ -322,7 +364,7 @@ if (-not $SkipInstall -and $remainingComponents.Count -gt 0) {
 if (-not $SkipHealthCheck) {
     Invoke-Step -Name 'Test OSConfig Health' -ScriptBlock {
         $healthScript = Join-Path $repoRoot 'Test-OSConfig.ps1'
-        & $healthScript -NoExit
+        & $healthScript -SeedRoot $UserProfileRoot -NoExit
     }
 }
 

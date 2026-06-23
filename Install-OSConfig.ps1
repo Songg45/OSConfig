@@ -6,7 +6,8 @@ param(
     [string[]]$Component = @('WindowsUpdates', 'Runtimes', 'Sysmon', 'Winlogbeat', 'Metricbeat', 'Browsers', 'Thunderbird', 'DocumentTools', 'EverydayApps', 'Communication', 'Productivity', 'UserProfileSeed'),
     [switch]$ForceDownload,
     [switch]$SkipValidation,
-    [switch]$ContinueOnError
+    [switch]$ContinueOnError,
+    [string]$UserProfileRoot = $env:USERPROFILE
 )
 
 $ErrorActionPreference = 'Stop'
@@ -95,6 +96,11 @@ foreach ($componentName in $Component) {
 
     if ($SkipValidation) {
         $arguments += '-SkipValidation'
+    }
+
+    if ($componentName -eq 'UserProfileSeed') {
+        $arguments += '-SeedRoot'
+        $arguments += $UserProfileRoot
     }
 
     try {

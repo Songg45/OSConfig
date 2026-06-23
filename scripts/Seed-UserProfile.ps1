@@ -496,21 +496,63 @@ function Set-LocalUserFullName {
         return
     }
 
-    if ($PSCmdlet.ShouldProcess($env:USERNAME, "Set local full name to $FullName")) {
-        & net.exe user $env:USERNAME /fullname:"$FullName" | Out-Host
+    $profileUserName = Split-Path -Path $SeedRoot -Leaf
+
+    if ($PSCmdlet.ShouldProcess($profileUserName, "Set local full name to $FullName")) {
+        & net.exe user $profileUserName /fullname:"$FullName" | Out-Host
     }
 }
 
 function Set-ExplorerBaseline {
-    $advancedPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    $profile = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\*' -ErrorAction SilentlyContinue |
+        Where-Object {
+            $profilePath = [Environment]::ExpandEnvironmentVariables($_.ProfileImagePath)
+            $profilePath.TrimEnd('\') -ieq $SeedRoot.TrimEnd('\')
+        } |
+        Select-Object -First 1
 
-    if ($PSCmdlet.ShouldProcess($advancedPath, 'Set Explorer visibility baseline')) {
-        New-Item -Path $advancedPath -Force | Out-Null
+    if (-not $profile) {
+        throw "Unable to find the profile SID for $SeedRoot."
+    }
 
-        # Hidden=2 keeps hidden files and folders hidden. HideFileExt=0 shows common file extensions.
-        Set-ItemProperty -Path $advancedPath -Name Hidden -Type DWord -Value 2
-        Set-ItemProperty -Path $advancedPath -Name ShowSuperHidden -Type DWord -Value 0
-        Set-ItemProperty -Path $advancedPath -Name HideFileExt -Type DWord -Value 0
+    $profileSid = $profile.PSChildName
+    $hiveRoot = "Registry::HKEY_USERS\$profileSid"
+    $loadedHiveName = $null
+
+    if (-not (Test-Path -LiteralPath $hiveRoot)) {
+        $ntUserPath = Join-Path $SeedRoot 'NTUSER.DAT'
+
+        if (-not (Test-Path -LiteralPath $ntUserPath)) {
+            throw "User registry hive was not found at $ntUserPath."
+        }
+
+        $loadedHiveName = "OSConfigSeed-$([guid]::NewGuid().ToString('N'))"
+        & reg.exe load "HKU\$loadedHiveName" $ntUserPath | Out-Host
+
+        if ($LASTEXITCODE -ne 0) {
+            throw "Unable to load the user registry hive from $ntUserPath."
+        }
+
+        $hiveRoot = "Registry::HKEY_USERS\$loadedHiveName"
+    }
+
+    try {
+        $advancedPath = Join-Path $hiveRoot 'Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+
+        if ($PSCmdlet.ShouldProcess($advancedPath, 'Set Explorer visibility baseline')) {
+            New-Item -Path $advancedPath -Force | Out-Null
+
+            # Hidden=2 keeps hidden files and folders hidden. HideFileExt=0 shows common file extensions.
+            Set-ItemProperty -Path $advancedPath -Name Hidden -Type DWord -Value 2
+            Set-ItemProperty -Path $advancedPath -Name ShowSuperHidden -Type DWord -Value 0
+            Set-ItemProperty -Path $advancedPath -Name HideFileExt -Type DWord -Value 0
+        }
+    } finally {
+        if ($loadedHiveName) {
+            [gc]::Collect()
+            [gc]::WaitForPendingFinalizers()
+            & reg.exe unload "HKU\$loadedHiveName" | Out-Host
+        }
     }
 }
 
@@ -683,8 +725,9 @@ New-SeedZip -ZipPath (Join-Path $downloads 'q2-reports.zip') -SourcePaths $zipSo
 New-SeedZip -ZipPath (Join-Path $downloads 'photos-march.zip') -SourcePaths $zipSourcesTwo
 
 if (-not $SkipBookmarks) {
-    Add-ChromiumBookmarks -BrowserName 'Chrome' -BookmarksPath (Join-Path $env:LOCALAPPDATA 'Google\Chrome\User Data\Default\Bookmarks')
-    Add-ChromiumBookmarks -BrowserName 'Edge' -BookmarksPath (Join-Path $env:LOCALAPPDATA 'Microsoft\Edge\User Data\Default\Bookmarks')
+    $seedLocalAppData = Join-Path $SeedRoot 'AppData\Local'
+    Add-ChromiumBookmarks -BrowserName 'Chrome' -BookmarksPath (Join-Path $seedLocalAppData 'Google\Chrome\User Data\Default\Bookmarks')
+    Add-ChromiumBookmarks -BrowserName 'Edge' -BookmarksPath (Join-Path $seedLocalAppData 'Microsoft\Edge\User Data\Default\Bookmarks')
 }
 
 Write-Host 'User profile seeding completed.'
